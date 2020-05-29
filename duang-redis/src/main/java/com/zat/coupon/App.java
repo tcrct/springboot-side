@@ -1,4 +1,4 @@
-package com.springbootside.duang.redis;
+package com.zat.coupon;
 
 public class App {
 

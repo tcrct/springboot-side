@@ -1,5 +1,6 @@
 package com.springbootside.duang.exception.common;
 
+import com.springbootside.duang.common.ToolsKit;
 import com.springbootside.duang.exception.ExceptionTemplateFactory;
 import com.springbootside.duang.exception.dto.ExceptionResultDto;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,10 @@ public class GlobalExceptionHandler {
     @ResponseBody
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handle(Exception exception) {
+
+        if (ToolsKit.isEmpty(exception)) {
+            throw new NullPointerException("exception is null!");
+        }
 
         System.out.println(exception.getClass().getName());
         System.out.println(exception.getClass());
