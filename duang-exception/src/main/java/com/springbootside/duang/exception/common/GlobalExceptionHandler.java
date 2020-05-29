@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 /**
  * 全局异常处理器
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerAdvice
 @Component
+@EnableWebMvc
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = Exception.class)

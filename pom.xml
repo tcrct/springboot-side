@@ -11,8 +11,8 @@
 		<module>duang-common</module>
 	</modules>
 
-	<groupId>com.springboot.side</groupId>
-	<artifactId>springboot-side</artifactId>
+	<groupId>com.springbootside.duang</groupId>
+	<artifactId>springbootside-duang</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>SpringBootSide</name>
 	<description>Spring Boot Side</description>
