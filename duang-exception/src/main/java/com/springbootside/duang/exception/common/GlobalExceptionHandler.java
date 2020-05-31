@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
     /**
      *异常处理方法，监听所有异常
      * @param exception 异常
-     * @return ExceptionResultDto
+     * @return ExceptionResultDto 异常处理结果DTO
      */
     @ExceptionHandler(value = Exception.class)
     @ResponseBody
@@ -39,7 +39,9 @@ public class GlobalExceptionHandler {
         ExceptionResultDto resultDto = ExceptionTemplateFactory.handle(exception);
 
         if (null == resultDto) {
-            resultDto = new ExceptionResultDto(1, "未知异常", "");
+            resultDto = new ExceptionResultDto(1,
+                    "["+exception.getClass().getName()+"]为未处理的异常，请添加该异常的处理模板！",
+                    "");
         }
 
         return resultDto;
