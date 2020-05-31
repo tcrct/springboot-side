@@ -1,7 +1,6 @@
 package com.springbootside.duang.exception.common;
 
 import com.springbootside.duang.common.ToolsKit;
-import com.springbootside.duang.exception.ExceptionTemplateFactory;
 import com.springbootside.duang.exception.dto.ExceptionResultDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
