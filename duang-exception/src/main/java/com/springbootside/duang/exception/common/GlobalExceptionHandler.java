@@ -26,17 +26,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = Exception.class)
     @ResponseBody
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public String handle(Exception exception) {
+    public ExceptionResultDto handle(Exception exception) {
 
         if (ToolsKit.isEmpty(exception)) {
             throw new NullPointerException("exception is null!");
         }
 
-        System.out.println(exception.getClass().getName());
-        System.out.println(exception.getClass());
-
         ExceptionResultDto resultDto = ExceptionTemplateFactory.handle(exception);
 
-        return "bad request222333" ;
+        if (null == resultDto) {
+            resultDto = new ExceptionResultDto(1, "未知异常", "");
+        }
+
+        return resultDto;
     }
 }

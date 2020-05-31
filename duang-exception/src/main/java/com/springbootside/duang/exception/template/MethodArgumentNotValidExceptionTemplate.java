@@ -3,14 +3,22 @@ package com.springbootside.duang.exception.template;
 
 import com.springbootside.duang.exception.common.AbstractExceptionTemplate;
 import com.springbootside.duang.exception.dto.ExceptionResultDto;
+import com.springbootside.duang.exception.utils.Exceptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 /**
- * Created by laotang on 2020/5/23.
+ * 方法参数验证异常处理模板
+ *
+ * @author Laotang
+ * @version 1.0
  */
 public class MethodArgumentNotValidExceptionTemplate extends AbstractExceptionTemplate {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodArgumentNotValidExceptionTemplate.class);
 
     @Override
     public Class<?> exceptionClass() {
@@ -19,15 +27,25 @@ public class MethodArgumentNotValidExceptionTemplate extends AbstractExceptionTe
 
     @Override
     public ExceptionResultDto handle(Exception exception) {
+        LOGGER.info("方法参数验证异常");
         MethodArgumentNotValidException methodArgumentNotValidException = (MethodArgumentNotValidException) exception;
-
+        StringBuilder exceptionStr = new StringBuilder();
         BindingResult bindingResult = methodArgumentNotValidException.getBindingResult();
         if (bindingResult.hasErrors()) {
             for (FieldError fieldError : bindingResult.getFieldErrors()) {
-                System.out.println("!!!!!!!!!! " + fieldError.getField() + "         " + fieldError.getDefaultMessage());
+                exceptionStr.append("[")
+                        .append(fieldError.getField())
+                        .append(":")
+                        .append(fieldError.getDefaultMessage())
+                        .append("];");
             }
-            return new ExceptionResultDto();
         }
-        return null;
+        System.out.println(exceptionStr);
+        ExceptionResultDto exceptionResultDto =  new ExceptionResultDto();
+        exceptionResultDto.setCode(1);
+        exceptionResultDto.setMessage(exceptionStr.toString());
+        exceptionResultDto.setStackMsg(Exceptions.getStackTraceAsString(exception));
+        LOGGER.info(exceptionResultDto.getStackMsg());
+        return exceptionResultDto;
     }
 }

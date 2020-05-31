@@ -1,6 +1,18 @@
 package com.springbootside.duang.common;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -10,6 +22,40 @@ import java.util.Map;
  * @version 1.0
  */
 public class ToolsKit {
+
+    public static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    static {
+        /**过滤对象的null属性*/
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        /**过滤map中的null key*/
+        objectMapper.getSerializerProvider().setNullKeySerializer(new JsonSerializer<Object>() {
+            @Override
+            public void serialize(Object value, JsonGenerator generator, SerializerProvider serializers) throws IOException, JsonProcessingException {
+                generator.writeFieldName("");
+            }
+        });
+        /**过滤map中的null值*/
+        objectMapper.getSerializerProvider().setNullValueSerializer(new JsonSerializer<Object>() {
+            @Override
+            public void serialize(Object value, JsonGenerator generator, SerializerProvider serializers) throws IOException, JsonProcessingException {
+                generator.writeString("");
+            }
+        });
+        //指定遇到date按照这种格式转换
+        objectMapper.setDateFormat(SDF);
+        //配置该objectMapper在反序列化时，忽略目标对象没有的属性。
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
+
+    // 定义一个请求对象安全线程类
+//    private static DuangThreadLocal<HeadDto> requestHeaderThreadLocal = new DuangThreadLocal<HeadDto>() {
+//        @Override
+//        public HeadDto initialValue() {
+//            return new HeadDto();
+//        }
+//    };
 
     /***
      * 判断传入的对象是否为空
@@ -69,5 +115,52 @@ public class ToolsKit {
         }
         return !bool;
     }
+
+    /**
+     * json字符串转换为对象
+     *
+     * @param jsonStr json格式的字符串
+     * @param clazz   待转换的对象
+     * @param <T>     返回泛型值
+     * @return
+     * @throws Exception
+     */
+    public static <T> T jsonParseObject(String jsonStr, Class<T> clazz) {
+        try {
+            return objectMapper.readValue(jsonStr, clazz);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * json格式字符串转换为List集合
+     * @param jsonStr
+     * @param typeReference
+     * @param <T>
+     * @return
+     */
+    public static <T> List<T> jsonParseArray(String jsonStr, TypeReference<T> typeReference) {
+        try {
+            return (List<T>) objectMapper.readValue(jsonStr, typeReference);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * 序列化成json格式的字符串
+     * @param obj
+     * @return
+     */
+    public static String toJsonString(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
 
 }
