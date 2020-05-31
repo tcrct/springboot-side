@@ -23,16 +23,19 @@ public class ExceptionTemplateFactory {
 
     // 异常模板集合，key为要处理的异常类，value为对应的处理模板
     private static Map<Class, AbstractExceptionTemplate> EXCEPTION_TEMPLATE_MAP = new HashMap<>();
-    // 异常模板包路径
-    private static String EXCEPTION_TEMPLATE_PACKAGE = "com.springbootside.duang.exception.template";
+    // 异常模板目录名称
+    private static String EXCEPTION_TEMPLATE_SUB_PACKAGE = "template";
 
     /**
      * 初始化异常模板类
      */
     private static void init() {
-        Set<Class<?>> exceptionClassSet = ClassUtil.scanPackage(EXCEPTION_TEMPLATE_PACKAGE);
+        String packagePath = ExceptionTemplateFactory.class.getPackage().getName();
+        packagePath = packagePath.substring(0, packagePath.indexOf("common"));
+        packagePath += EXCEPTION_TEMPLATE_SUB_PACKAGE;
+        Set<Class<?>> exceptionClassSet = ClassUtil.scanPackage(packagePath);
         if (null == exceptionClassSet) {
-            LOGGER.info("根据包路径[{}]初始化异常模板类时出错，请检查！", EXCEPTION_TEMPLATE_PACKAGE);
+            LOGGER.info("根据包路径[{}]初始化异常模板类时出错，请检查！", packagePath);
         } else {
             for (Iterator<Class<?>> iterator = exceptionClassSet.iterator(); iterator.hasNext();) {
                 Class<?> exceptionClass = iterator.next();
