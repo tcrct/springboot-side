@@ -22,6 +22,11 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @EnableWebMvc
 public class GlobalExceptionHandler {
 
+    /**
+     *异常处理方法，监听所有异常
+     * @param exception 异常
+     * @return ExceptionResultDto
+     */
     @ExceptionHandler(value = Exception.class)
     @ResponseBody
     @ResponseStatus(HttpStatus.BAD_REQUEST)
