@@ -2,7 +2,6 @@ package com.springbootside.duang.common.config;
 
 import com.springbootside.duang.common.ToolsKit;
 import com.springbootside.duang.common.handler.HandlerFactory;
-import io.undertow.util.HeaderMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
