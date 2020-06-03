@@ -30,6 +30,10 @@ public class HandlerFactory {
      * 请求处理器集合
      */
     private static final List<IHandler> HANDLERS = new ArrayList<>();
+    /**
+     *是否已经扫描
+     */
+    private static boolean isScanHandlerClass;
 
     /**
      * @param request
@@ -38,8 +42,14 @@ public class HandlerFactory {
      */
     public static boolean handler(HttpServletRequest request, HttpServletResponse response) {
 
+        if (isScanHandlerClass) {
+            LOGGER.info("系统中没有存在自定义的处理器，返回true，以继续往下执行代码！");
+            return true;
+        }
+
         if (HANDLERS.isEmpty()) {
             initHandler();
+            isScanHandlerClass = true;
         }
 
         if (HANDLERS.isEmpty()) {
