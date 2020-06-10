@@ -1,4 +1,4 @@
-package com.springbootside.duang.mybatisplus;
+package com.springbootside.duang.db;
 
 public class App {
 

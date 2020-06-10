@@ -1,16 +1,12 @@
-package com.springbootside.duang.common.dao.impl.beetlsql;
+package com.springbootside.duang.db.dao.impl.beetlsql;
 
-import cn.hutool.setting.SettingUtil;
 import org.beetl.sql.core.*;
-import org.beetl.sql.core.db.DBStyle;
 import org.beetl.sql.core.db.MySqlStyle;
 import org.beetl.sql.ext.DebugInterceptor;
 import org.beetl.sql.ext.spring4.BeetlSqlDataSource;
 import org.beetl.sql.ext.spring4.SqlManagerFactoryBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.sql.SQLException;
 
 /**
  * BettlSQL Factory
@@ -20,7 +16,7 @@ import java.sql.SQLException;
  */
 public class BettlSQLFactory {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BeetlSqlDao.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BeetlDao.class);
 
     /**
      *

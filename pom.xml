@@ -6,8 +6,7 @@
 	<modules>
 		<module>duang-exception</module>
 		<module>duang-redis</module>
-		<module>duang-mybatis-plus</module>
-		<module>duang-mongodb</module>
+		<module>duang-db</module>
 		<module>duang-common</module>
 	</modules>
 

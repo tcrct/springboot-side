@@ -1,7 +1,8 @@
-package com.springbootside.duang.common.dao.impl.beetlsql;
+package com.springbootside.duang.db.dao.impl.beetlsql;
 
 import org.beetl.sql.core.SQLManager;
 import org.beetl.sql.core.db.KeyHolder;
+import org.beetl.sql.core.engine.PageQuery;
 import org.beetl.sql.core.mapper.BaseMapper;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,16 @@ public class BeetlSqlBaseMapper<T> implements BaseMapper<T> {
 
     @Override
     public void insert(T t, boolean b) {
+
+    }
+
+    @Override
+    public void insertTemplate(T t) {
+
+    }
+
+    @Override
+    public void insertTemplate(T t, boolean b) {
 
     }
 
@@ -56,6 +67,11 @@ public class BeetlSqlBaseMapper<T> implements BaseMapper<T> {
     }
 
     @Override
+    public T lock(Object o) {
+        return null;
+    }
+
+    @Override
     public List<T> all() {
         return null;
     }
@@ -76,8 +92,18 @@ public class BeetlSqlBaseMapper<T> implements BaseMapper<T> {
     }
 
     @Override
+    public <T1> T1 templateOne(T1 t1) {
+        return null;
+    }
+
+    @Override
     public List<T> template(T t, int i, int i1) {
         return null;
+    }
+
+    @Override
+    public void templatePage(PageQuery<T> pageQuery) {
+
     }
 
     @Override

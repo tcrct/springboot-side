@@ -1,18 +1,14 @@
-package com.springbootside.duang.common.dao.impl.beetlsql;
+package com.springbootside.duang.db.dao.impl.beetlsql;
 
-import com.springbootside.duang.common.dao.SqlDao;
-import com.springbootside.duang.common.dao.impl.beetlsql.BeetlSqlBaseMapper;
+import cn.hutool.db.sql.Query;
+import com.springbootside.duang.db.dao.Dao;
 import org.beetl.sql.core.*;
-import org.beetl.sql.core.db.DBStyle;
-import org.beetl.sql.core.db.MySqlStyle;
-import org.beetl.sql.core.mapper.BaseMapper;
-import org.beetl.sql.ext.DebugInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * SqlDao实现类，基于BeetlSql
@@ -23,18 +19,19 @@ import java.io.Serializable;
  * @since 1.0
  */
 //使用 @component注解，将普通JavaBean实例化到spring容器中。
-@Component
-final public class BeetlSqlDao<T> implements SqlDao<T> {
+//@Component
+final public class BeetlDao<T> implements Dao<T> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BeetlSqlDao.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BeetlDao.class);
 
     @Autowired
     private BeetlSqlBaseMapper<T> baseMapper;
-    private SQLManager manager;
 
-    public BeetlSqlDao(){
+    private static SQLManager manager;
+
+    public BeetlDao(){
         if (null == manager) {
-            synchronized (BeetlSqlDao.class) {
+            synchronized (BeetlDao.class) {
                 try {
 //                    manager = BettlSQLFactory.getSqlManager();
                 } catch (Exception e) {
@@ -65,5 +62,15 @@ final public class BeetlSqlDao<T> implements SqlDao<T> {
     @Override
     public T findById(Serializable id) {
         return null;
+    }
+
+    @Override
+    public List<T> findList(Query query) {
+        return null;
+    }
+
+    @Override
+    public boolean deleteById(Serializable id) {
+        return false;
     }
 }
