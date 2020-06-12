@@ -1,7 +1,5 @@
 package com.springbootside.duang.db.model;
 
-import com.baomidou.mybatisplus.generator.config.IFileCreate;
-
 public abstract class DBConnect {
 
     public static final String HOST_FIELD = "host";
