@@ -1,7 +1,7 @@
 package com.springbootside.duang.redis.core;
 
 
-import com.springbootside.duang.common.ToolsKit;
+import com.springbootside.duang.common.utils.ToolsKit;
 
 public class CacheKeyModel {
 

@@ -4,11 +4,12 @@ import org.beetl.sql.core.SQLManager;
 import org.beetl.sql.core.db.KeyHolder;
 import org.beetl.sql.core.engine.PageQuery;
 import org.beetl.sql.core.mapper.BaseMapper;
+import org.beetl.sql.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
+//@Component
 public class BeetlSqlBaseMapper<T> implements BaseMapper<T> {
 
     @Override
@@ -123,6 +124,11 @@ public class BeetlSqlBaseMapper<T> implements BaseMapper<T> {
 
     @Override
     public SQLManager getSQLManager() {
+        return null;
+    }
+
+    @Override
+    public Query<T> createQuery() {
         return null;
     }
 }

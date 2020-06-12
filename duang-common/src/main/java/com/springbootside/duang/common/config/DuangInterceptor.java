@@ -1,6 +1,6 @@
 package com.springbootside.duang.common.config;
 
-import com.springbootside.duang.common.ToolsKit;
+import com.springbootside.duang.common.utils.ToolsKit;
 import com.springbootside.duang.common.handler.HandlerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

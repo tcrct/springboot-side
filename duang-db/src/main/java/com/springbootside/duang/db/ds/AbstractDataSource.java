@@ -1,6 +1,6 @@
 package com.springbootside.duang.db.ds;
 
-import com.springbootside.duang.common.ToolsKit;
+import com.springbootside.duang.common.utils.ToolsKit;
 import com.springbootside.duang.db.model.DBConnect;
 
 import javax.sql.DataSource;

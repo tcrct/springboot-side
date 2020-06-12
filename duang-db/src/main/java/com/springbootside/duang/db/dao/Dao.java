@@ -1,11 +1,10 @@
 package com.springbootside.duang.db.dao;
 
 import cn.hutool.db.sql.Query;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
+import com.springbootside.duang.common.utils.ToolsKit;
+import org.beetl.sql.core.mapper.BaseMapper;
 
 import java.io.Serializable;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -15,7 +14,11 @@ import java.util.List;
  * @author Laotang
  * @since 1.0
  */
-public interface Dao<T> {
+public interface Dao<T> extends BaseMapper<T> {
+
+    default Class<?> getEntityClass() {
+        return ToolsKit.getSuperClassGenericType(getClass(), 0);
+    }
 
     /**保存对象*/
     T save(T obj);

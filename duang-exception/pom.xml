@@ -41,6 +41,11 @@
             <artifactId>duang-common</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>com.springbootside.duang.db</groupId>
+            <artifactId>duang-db</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
 </project>

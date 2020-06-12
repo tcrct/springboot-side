@@ -8,7 +8,7 @@ import org.beetl.sql.core.SQLManager;
 import java.io.Serializable;
 import java.util.List;
 
-public class MybatisPlusDaoTemplate<T> extends AbstractDaoTemplate<BaseMapper, T> {
+public abstract class MybatisPlusDaoTemplate<T> extends AbstractDaoTemplate< T> {
 
     public static final String TEMPLATE_NAME = "MybatisPlus";
 

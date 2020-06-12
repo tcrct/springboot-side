@@ -1,6 +1,6 @@
 package com.springbootside.duang.exception.nums;
 
-import com.springbootside.duang.common.ToolsKit;
+import com.springbootside.duang.common.utils.ToolsKit;
 import com.springbootside.duang.exception.common.DuangException;
 
 /**

@@ -15,6 +15,7 @@ import org.beetl.sql.ext.spring4.SqlManagerFactoryBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
 import java.util.List;
@@ -24,7 +25,8 @@ import java.util.Objects;
  *
  * @param <T>
  */
-public class BeetlDaoTemplate<T> extends AbstractDaoTemplate<SQLManager, T> {
+//@Component
+public abstract class BeetlDaoTemplate<T> extends AbstractDaoTemplate<T> {
 
     public static final String TEMPLATE_NAME = "beetlSql";
 
@@ -54,27 +56,6 @@ public class BeetlDaoTemplate<T> extends AbstractDaoTemplate<SQLManager, T> {
      * @return
      */
     private SQLManager getSqlManager(DBConnect connect) {
-        /*
-        try {
-            SqlManagerFactoryBean factoryBean = new SqlManagerFactoryBean();
-            // 指定数据源
-//            HikariDataSourceFactory hikariDataSourceFactory = new HikariDataSourceFactory();
-//            factoryBean.setCs((BeetlSqlDataSource) hikariDataSourceFactory.getDataSource(new ZatDBConnect()));
-            factoryBean.setCs(new BeetlSqlDataSource());
-            // 指定数据库类型
-            factoryBean.setDbStyle(new MySqlStyle());
-            // DebugInterceptor 不是必须的，但可以通过它查看sql执行情况
-            factoryBean.setInterceptors(new Interceptor[]{new DebugInterceptor()});
-            // 名称转换样式，数据库命名跟java命名一样，采用DefaultNameConversion，下划线风格的，采用UnderlinedNameConversion
-            factoryBean.setNc(new DefaultNameConversion());
-            // 指定sql语句目录
-            factoryBean.setSqlLoader(new ClasspathLoader("/sql"));
-            return factoryBean.getObject();
-        } catch (Exception exception) {
-            throw new RuntimeException("初始化BettlSQL SQLManager时出错: " + exception.getMessage(), exception);
-        }
-         */
-
         try {
             ConnectionSource source = ConnectionSourceHelper.getSimple(
                     connect.getDriver(), connect.getUrl(), connect.getUsername(), connect.getPassword());
@@ -107,7 +88,7 @@ public class BeetlDaoTemplate<T> extends AbstractDaoTemplate<SQLManager, T> {
     public T save(T obj) {
         System.out.println("BeetlSqlDaoTemplate：" + obj.getClass().getName()+"                    ");
         entityClass = obj.getClass();
-        System.out.println("@@@@@@@@@@@: " + getEnitytClass());
+        System.out.println("@@@@@@@@@@@: " + getEntityClass());
         return null;
     }
 

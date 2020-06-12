@@ -2,10 +2,12 @@ package com.springbootside.duang.db.dao.impl.beetlsql;
 
 import cn.hutool.db.sql.Query;
 import com.springbootside.duang.db.dao.Dao;
+import com.springbootside.duang.db.dao.ZatDBConnect;
 import org.beetl.sql.core.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
 import java.util.List;
@@ -20,7 +22,7 @@ import java.util.List;
  */
 //使用 @component注解，将普通JavaBean实例化到spring容器中。
 //@Component
-final public class BeetlDao<T> implements Dao<T> {
+final public class BeetlDao<T> { // implements Dao<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BeetlDao.class);
 
@@ -33,7 +35,7 @@ final public class BeetlDao<T> implements Dao<T> {
         if (null == manager) {
             synchronized (BeetlDao.class) {
                 try {
-//                    manager = BettlSQLFactory.getSqlManager();
+                    manager = BettlSQLFactory.getSqlManager(new ZatDBConnect());
                 } catch (Exception e) {
                     LOGGER.warn("{},{}", e.getMessage(), e);
                 }
@@ -46,10 +48,9 @@ final public class BeetlDao<T> implements Dao<T> {
      * @param obj 待持久化的对象
      * @return 返回保存后的对象
      */
-    @Override
     public T save(T obj) {
 
-        manager.insert(obj);
+//        manager.insert(obj);
         System.out.println("SqlDao：" + obj.getClass().getName()+"             "+baseMapper.hashCode());
         return (T)obj;
     }
@@ -59,17 +60,16 @@ final public class BeetlDao<T> implements Dao<T> {
      * @param id 对象记录的ID值
      * @return 返回泛型对象
      */
-    @Override
     public T findById(Serializable id) {
         return null;
+//        System.out.println("getEntityClass():" + getEntityClass());
+//        return (T)manager.unique(getEntityClass(), id);
     }
 
-    @Override
     public List<T> findList(Query query) {
         return null;
     }
 
-    @Override
     public boolean deleteById(Serializable id) {
         return false;
     }

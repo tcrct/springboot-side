@@ -3,7 +3,7 @@ package com.springbootside.duang.db.dao.impl.mybatisplus;
 import cn.hutool.db.sql.Query;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.springbootside.duang.common.ToolsKit;
+import com.springbootside.duang.common.utils.ToolsKit;
 import com.springbootside.duang.db.dao.Dao;
 import com.springbootside.duang.common.entity.IdEntity;
 import org.slf4j.Logger;
@@ -22,7 +22,7 @@ import java.util.List;
  */
 //使用 @component注解，将普通JavaBean实例化到spring容器中。
 //@Component
-public class MybatisPlusDao<T> extends AbstractMybatisPlusDao<T>  implements Dao<T> {
+public abstract class MybatisPlusDao<T> extends AbstractMybatisPlusDao<T>  implements Dao<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MybatisPlusDao.class);
 

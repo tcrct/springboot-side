@@ -4,7 +4,7 @@ import cn.hutool.core.util.ClassUtil;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.setting.Setting;
 import cn.hutool.setting.SettingUtil;
-import com.springbootside.duang.common.ToolsKit;
+import com.springbootside.duang.common.utils.ToolsKit;
 import com.springbootside.duang.common.annotation.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

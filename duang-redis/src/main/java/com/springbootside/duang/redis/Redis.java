@@ -11,6 +11,12 @@ import redis.clients.jedis.JedisPool;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ *  Redis使用方法封装类
+ *
+ * @author Laotang
+ * @since 1.0
+ */
 public class Redis {
 
     private static final Logger LOG = LoggerFactory.getLogger(Redis.class);
@@ -18,17 +24,17 @@ public class Redis {
     private String name;
     private JedisPool jedisPool;
     private ISerializer serializer;
-    private static Redis REDIS;
 
+    /**
+     * 构造方法
+     * @param name
+     * @param jedisPool
+     * @param serializer
+     */
     public Redis(String name, JedisPool jedisPool, ISerializer serializer) {
         this.name = name;
         this.jedisPool = jedisPool;
         this.serializer = serializer;
-        REDIS = this;
-    }
-
-    public static Redis getInstance() {
-        return REDIS;
     }
 
     private Jedis getResource()  {
