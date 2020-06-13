@@ -1,10 +1,15 @@
 package com.springbootside.duang.common.config;
 
+import com.springbootside.duang.common.dto.HeadDto;
+import com.springbootside.duang.common.dto.R;
 import com.springbootside.duang.common.utils.ToolsKit;
 import com.springbootside.duang.common.handler.HandlerFactory;
+import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.MethodParameter;
 import org.springframework.lang.Nullable;
+import org.springframework.util.ClassUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -58,6 +63,13 @@ public class DuangInterceptor implements HandlerInterceptor {
         }
         if(handler instanceof HandlerMethod){
             HandlerMethod handlerMethod = (HandlerMethod) handler;
+            MethodParameter[] methodParameters = handlerMethod.getMethodParameters();
+            for (MethodParameter methodParameter : methodParameters) {
+                Class clazz = methodParameter.getParameterType();
+                if (ClassUtils.isAssignable(R.class, clazz)) {
+                    System.out.println(methodParameter.getParameter());
+                }
+            }
             LOGGER.info("当前拦截的方法为：{}",handlerMethod.getMethod().getName());
             LOGGER.info("当前拦截的方法参数长度为：{}",handlerMethod.getMethod().getParameters().length);
             LOGGER.info("当前拦截的方法为：{}",handlerMethod.getBean().getClass().getName());
@@ -65,6 +77,7 @@ public class DuangInterceptor implements HandlerInterceptor {
             String uri = request.getRequestURI();
             LOGGER.info("拦截的uri："+uri);
         }
+
     }
 
 
@@ -78,6 +91,33 @@ public class DuangInterceptor implements HandlerInterceptor {
      */
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex) throws Exception {
-
+//        System.out.println(response.getTrailerFields());
+//        if(handler instanceof HandlerMethod){
+//            HandlerMethod handlerMethod = (HandlerMethod) handler;
+//            System.out.println(handlerMethod.getBean());
+//            System.out.println(handlerMethod.getReturnType());
+//            MethodParameter[] methodParameters = handlerMethod.getMethodParameters();
+//            for (MethodParameter methodParameter : methodParameters) {
+//                Class clazz = methodParameter.getParameterType();
+//                if (ClassUtils.isAssignable(R.class, clazz)) {
+//                    System.out.println(methodParameter.getParameter());
+//                }
+//            }
+//            HeadDto headDto = ToolsKit.getThreadLocalDto();
+//            System.out.println("@@@@@@@@@@@: " + handlerMethod);
+//            if (headDto.getUri().equalsIgnoreCase(request.getRequestURI())) {
+//                headDto.setCode(1);
+//                // 服务器业务处理执行时间(毫秒)
+//                headDto.setProcessTime(System.currentTimeMillis() - headDto.getStartTime());
+//                // 移除
+//                ToolsKit.removeThreadLocalDto();
+//            }
+//            LOGGER.info("当前拦截的方法为：{}",handlerMethod.getMethod().getName());
+//            LOGGER.info("当前拦截的方法参数长度为：{}",handlerMethod.getMethod().getParameters().length);
+//            LOGGER.info("当前拦截的方法为：{}",handlerMethod.getBean().getClass().getName());
+//            LOGGER.info("开始拦截---------");
+//            String uri = request.getRequestURI();
+//            LOGGER.info("拦截的uri："+uri);
+//        }
     }
 }

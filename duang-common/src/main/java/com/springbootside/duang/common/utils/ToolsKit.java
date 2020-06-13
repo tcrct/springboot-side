@@ -1,5 +1,6 @@
 package com.springbootside.duang.common.utils;
 
+import cn.hutool.core.date.DateUtil;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -8,6 +9,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.springbootside.duang.common.dto.HeadDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +32,7 @@ public class ToolsKit {
     private final static Logger LOGGER = LoggerFactory.getLogger(ToolsKit.class);
 
     public static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     static {
         /**过滤对象的null属性*/
@@ -56,12 +58,32 @@ public class ToolsKit {
     }
 
     // 定义一个请求对象安全线程类
-//    private static DuangThreadLocal<HeadDto> requestHeaderThreadLocal = new DuangThreadLocal<HeadDto>() {
-//        @Override
-//        public HeadDto initialValue() {
-//            return new HeadDto();
-//        }
-//    };
+    private static DuangThreadLocal<HeadDto> requestHeaderThreadLocal = new DuangThreadLocal<HeadDto>() {
+        @Override
+        public HeadDto initialValue() {
+            return new HeadDto();
+        }
+    };
+
+    /**
+     * 设置请求头DTO到ThreadLocal变量
+     * @param headDto       请求头DTO
+     */
+    public static void setThreadLocalDto(HeadDto headDto) {
+        requestHeaderThreadLocal.set(headDto);
+    }
+
+    /**
+     *  取ThreadLocal里的HeadDto对象
+     * @return
+     */
+    public static HeadDto getThreadLocalDto() {
+        return  requestHeaderThreadLocal.get();
+    }
+
+    public static void removeThreadLocalDto() {
+        requestHeaderThreadLocal.remove();
+    }
 
     /***
      * 判断传入的对象是否为空
@@ -168,6 +190,15 @@ public class ToolsKit {
         }
     }
 
+    public static Class<?> getSuperInterfaceGenericType(final Class<?> clazz, final int index) {
+        Type[] types = clazz.getGenericInterfaces();
+        if (null != types) {
+            ParameterizedType parameterized = (ParameterizedType) types[index];
+            Type type = parameterized.getActualTypeArguments()[index];
+            return (Class<?>) type;
+        }
+        return Object.class;
+    }
 
     /**
      * <p>
@@ -199,4 +230,13 @@ public class ToolsKit {
     }
 
 
+    /**
+     * 当前时间，格式 yyyy-MM-dd HH:mm:ss
+     *
+     * @return 当前时间的标准形式字符串
+     */
+    public static String getCurrentDateTime() {
+//        DateUtil.date(System.currentTimeMillis()).toStringDefaultTimeZone();
+        return DateUtil.now();
+    }
 }

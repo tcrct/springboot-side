@@ -6,10 +6,10 @@ package com.springbootside.duang.exception.nums;
  * @author Laotang
  * @version 1.0
  */
-public enum  BaseExceptionEnum implements IExceptionEnum {
+public enum ExceptionEnum implements IExceptionEnum {
 
-    /**参数为空*/
     PARAM_NULL(1000, "参数为空"),
+    PARAM_INCORRECT(1001, "参数验证不通过"),
 
 
 
@@ -17,7 +17,7 @@ public enum  BaseExceptionEnum implements IExceptionEnum {
     private Integer code;
     private String message;
 
-    private BaseExceptionEnum(Integer code, String message) {
+    private ExceptionEnum(Integer code, String message) {
         this.code = code;
         this.message = message;
     }

@@ -11,10 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 处理器工厂
@@ -34,6 +31,10 @@ public class HandlerFactory {
      *是否已经扫描
      */
     private static boolean isScanHandlerClass;
+
+    static {
+        HANDLERS.add(new InitDuangHandler());
+    }
 
     /**
      * @param request
@@ -89,14 +90,23 @@ public class HandlerFactory {
             return;
         }
         try {
+            TreeMap<Integer, IHandler> handlerTreeMap = new TreeMap<>();
             for (Class<?> clazz : handlerSet) {
                 if (!IHandler.class.equals(clazz.getInterfaces()[0])) {
                     throw new RuntimeException(String.format("[{}]没有实现[{}]接口，请检查！", clazz.getName(), Handler.class.getSimpleName()));
                 }
+                Handler handlerAnn = clazz.getAnnotation(Handler.class);
+                if (null == handlerAnn) {
+                    continue;
+                }
                 IHandler handler = (IHandler) ReflectUtil.newInstance(clazz);
                 if (ToolsKit.isNotEmpty(handler)) {
-                    HANDLERS.add(handler);
+                    handlerTreeMap.put(handlerAnn.sort(), handler);
                 }
+            }
+
+            if(!handlerTreeMap.isEmpty()) {
+                HANDLERS.addAll(handlerTreeMap.values());
             }
         } catch (Exception e) {
             LOGGER.warn("初始化请求拦截处理器时出错: {}，清空HANDLERS集合后退出", e.getMessage(), e);
