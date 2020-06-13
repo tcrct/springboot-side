@@ -32,6 +32,7 @@ public final class SpringKit implements BeanFactoryPostProcessor {
 
     /** Spring应用上下文环境 */
     private static ConfigurableListableBeanFactory beanFactory;
+    /**ServiceImpl与泛型关系，key为泛型，value为Impl，用于CURD*/
     private static final Map<Class<?>, Object> serviceBeanMap = new HashMap<>();
 
     @Override
