@@ -30,7 +30,7 @@ public class HttpMessageNotWritableExceptionTemplate extends AbstractExceptionTe
         HttpMessageNotWritableException e = (HttpMessageNotWritableException) exception;
         ExceptionResultDto exceptionResultDto =  new ExceptionResultDto();
         exceptionResultDto.setCode(1);
-        exceptionResultDto.setMessage("请确保entity/dto类已经正确设置get/set方法，异常信息: " + e.getMessage());
+        exceptionResultDto.setMessage("请确保Entity/Dto类已经正确设置get/set方法，异常信息: " + e.getMessage());
         exceptionResultDto.setStackMsg(Exceptions.getStackTraceAsString(exception));
         LOGGER.info(exceptionResultDto.getStackMsg());
         return exceptionResultDto;
