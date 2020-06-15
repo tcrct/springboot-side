@@ -4,7 +4,6 @@ package com.springbootside.duang.exception.template;
 import com.springbootside.duang.exception.common.AbstractExceptionTemplate;
 import com.springbootside.duang.exception.dto.ExceptionResultDto;
 import com.springbootside.duang.exception.utils.Exceptions;
-import org.beetl.sql.core.BeetlSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.converter.HttpMessageNotWritableException;

@@ -1,4 +1,4 @@
-package com.springbootside.duang.common.entity;
+package com.springbootside.duang.db.model;
 
 import java.io.Serializable;
 
@@ -9,6 +9,8 @@ import java.io.Serializable;
  * @version 1.0
  */
 public class IdEntity implements java.io.Serializable {
+
+    public final static String ID_FIELD = "id";
 
     private Serializable id;
 

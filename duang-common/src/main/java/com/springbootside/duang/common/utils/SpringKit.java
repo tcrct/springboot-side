@@ -1,54 +1,79 @@
 package com.springbootside.duang.common.utils;
 
-import com.springbootside.duang.common.base.ICurdService;
+import com.springbootside.duang.db.curd.ICurdService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 /**
  * spring工具类 方便在非spring管理环境中获取bean
- * 
+ * https://blog.csdn.net/hengyunabc/article/details/51289327
+ *
  * @author Laotang
  * @since 1.0
  */
 @Component
-public final class SpringKit implements BeanFactoryPostProcessor {
+public final class SpringKit implements BeanPostProcessor {
+//    public final class SpringKit implements BeanFactoryPostProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SpringKit.class);
 
     /** Spring应用上下文环境 */
     private static ConfigurableListableBeanFactory beanFactory;
-    /**ServiceImpl与泛型关系，key为泛型，value为Impl，用于CURD*/
-    private static final Map<Class<?>, Object> serviceBeanMap = new HashMap<>();
+
+
+    private static final Map<Class<?>, Object> beanMap = new HashMap<>();
+    /**ServiceImpl与泛型关系，key为泛型类，value为serviceImpl类，用于CURD*/
+    private static final Map<Class<?>, Object> serviceGenericTypeBeanMap = new HashMap<>();
 
     @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) {
+//        System.out.println(bean.getClass()+"             "+beanName);
+        Class<?> beanClass = bean.getClass();
+        beanMap.put(beanClass, bean);
+        Service serviceAnn = beanClass.getAnnotation(Service.class);
+        if (null != serviceAnn){
+            Class<?> genericTypeClass = ToolsKit.getSuperClassGenericType(beanClass, 0);
+            if (null == genericTypeClass || Object.class.equals(genericTypeClass)) {
+                LOGGER.info("[{}]没有继承[{}]，不能自动生成CURD方法，请检查！",
+                        beanClass, ICurdService.class.getName());
+            }
+            serviceGenericTypeBeanMap.put(genericTypeClass, bean);
+        }
+        return bean;
+    }
+
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
         SpringKit.beanFactory = beanFactory;
-        Map<String, Object> beanMap = beanFactory.getBeansWithAnnotation(Service.class);
-        for (Iterator<Map.Entry<String, Object>> iterator = beanMap.entrySet().iterator(); iterator.hasNext();) {
-            Map.Entry<String, Object> entry = iterator.next();
-            Object serviceImpl = entry.getValue();
-            Class<?> genericTypeClass = ToolsKit.getSuperClassGenericType(serviceImpl.getClass(), 0);
-            if (null == genericTypeClass) {
-                LOGGER.warn("[{}]可能没有继承[{}]，不能自动生成CURD方法，请检查！", serviceImpl.getClass(), ICurdService.class.getName());
-                continue;
-            }
-            serviceBeanMap.put(genericTypeClass, serviceImpl);
-        }
+//        System.out.println(ToolsKit.toJsonString(beanFactory.getBeanDefinitionNames()));
+//        beanFactory.getBeanNamesIterator().forEachRemaining(new Consumer<String>() {
+//            @Override
+//            public void accept(String s) {
+//                System.out.println(s);
+//            }
+//        });
+//        getBean("demoServiceImpl");
+//        Map<String, Object> beanMap = SpringKit.beanFactory.getBeansWithAnnotation(Service.class);
+//        for (Iterator<Map.Entry<String, Object>> iterator = beanMap.entrySet().iterator(); iterator.hasNext();) {
+//            Map.Entry<String, Object> entry = iterator.next();
+//            Object serviceImpl = entry.getValue();
+//            Class<?> genericTypeClass = ToolsKit.getSuperClassGenericType(serviceImpl.getClass(), 0);
+//            if (null == genericTypeClass || Object.class.equals(genericTypeClass)) {
+//                LOGGER.info("[{}]没有继承[{}]，不能自动生成CURD方法，请检查！",
+//                        serviceImpl.getClass(), ICurdService.class.getName());
+//                continue;
+//            }
+//            serviceBeanMap.put(genericTypeClass, serviceImpl);
+//        }
     }
 
     /**
@@ -60,9 +85,9 @@ public final class SpringKit implements BeanFactoryPostProcessor {
      *
      */
     @SuppressWarnings("unchecked")
-    public static <T> T getBean(String name) throws BeansException {
-        return (T) beanFactory.getBean(name);
-    }
+//    public static <T> T getBean(String name) throws BeansException {
+//        return (T) beanFactory.getBean(name);
+//    }
 
     /**
      * 获取类型为requiredType的对象
@@ -73,7 +98,7 @@ public final class SpringKit implements BeanFactoryPostProcessor {
      *
      */
     public static <T> T getBean(Class<T> clz) throws BeansException {
-        T result = (T) beanFactory.getBean(clz);
+        T result = (T) beanMap.get(clz);
         return result;
     }
 
@@ -85,7 +110,7 @@ public final class SpringKit implements BeanFactoryPostProcessor {
      * @throws BeansException
      */
     public static <T> T getBeanByGenericType(Class<T> clz) throws BeansException {
-        return (T) serviceBeanMap.get(clz);
+        return (T) serviceGenericTypeBeanMap.get(clz);
     }
 
     /**
@@ -94,8 +119,8 @@ public final class SpringKit implements BeanFactoryPostProcessor {
      * @param name
      * @return boolean
      */
-    public static boolean containsBean(String name) {
-        return beanFactory.containsBean(name);
+    public static boolean containsBean(Class<?> cls) {
+        return beanMap.containsKey(cls);
     }
 
     /**
@@ -106,9 +131,9 @@ public final class SpringKit implements BeanFactoryPostProcessor {
      * @throws NoSuchBeanDefinitionException
      *
      */
-    public static boolean isSingleton(String name) throws NoSuchBeanDefinitionException {
-        return beanFactory.isSingleton(name);
-    }
+//    public static boolean isSingleton(String name) throws NoSuchBeanDefinitionException {
+//        return beanFactory.isSingleton(name);
+//    }
 
     /**
      * @param name
@@ -116,9 +141,9 @@ public final class SpringKit implements BeanFactoryPostProcessor {
      * @throws NoSuchBeanDefinitionException
      *
      */
-    public static Class<?> getType(String name) throws NoSuchBeanDefinitionException {
-        return beanFactory.getType(name);
-    }
+//    public static Class<?> getType(String name) throws NoSuchBeanDefinitionException {
+//        return beanFactory.getType(name);
+//    }
 
     /**
      * 如果给定的bean名字在bean定义中有别名，则返回这些别名
@@ -128,13 +153,13 @@ public final class SpringKit implements BeanFactoryPostProcessor {
      * @throws NoSuchBeanDefinitionException
      *
      */
-    public static String[] getAliases(String name) throws NoSuchBeanDefinitionException {
-        return beanFactory.getAliases(name);
-    }
+//    public static String[] getAliases(String name) throws NoSuchBeanDefinitionException {
+//        return beanFactory.getAliases(name);
+//    }
 
     /**
      * 获取aop代理对象
-     * 
+     *
      * @param invoker
      * @return
      */

@@ -19,7 +19,7 @@ public class R implements java.io.Serializable {
     public static R success() {
         return new R(0, "success");
     }
-    public static R success(Objects obj) {
+    public static R success(Object obj) {
         return new R(0, obj);
     }
 

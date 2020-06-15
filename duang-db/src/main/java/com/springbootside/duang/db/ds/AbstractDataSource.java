@@ -1,6 +1,5 @@
 package com.springbootside.duang.db.ds;
 
-import com.springbootside.duang.common.utils.ToolsKit;
 import com.springbootside.duang.db.model.DBConnect;
 
 import javax.sql.DataSource;
@@ -16,13 +15,13 @@ public abstract class AbstractDataSource<T extends DataSource> implements IDataS
     @Override
     public T getDataSource(DBConnect connect) throws Exception {
         T ds = builderDataSource();
-        if(ToolsKit.isNotEmpty(connect.getUsername())) {
+        if(null != connect.getUsername()) {
             setUsername(ds, connect.getUsername());
         }
-        if(ToolsKit.isNotEmpty(connect.getPassword())) {
+        if(null != connect.getPassword()) {
             setPassword(ds, connect.getPassword());
         }
-        if(ToolsKit.isNotEmpty(connect.getUrl())) {
+        if(null != connect.getUrl()) {
             setUrl(ds, connect.getUrl());
         }
         setInitParam(ds);
