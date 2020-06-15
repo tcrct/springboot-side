@@ -41,17 +41,21 @@ public class SearchListDto implements java.io.Serializable {
     @Param(label = "查询字段集合", desc = "指定查询的字段")
     private List<String> fieldList;
 
+    @Param(label = "groupby字段", desc = "groupby字段")
+    private List<String> groupByList;
+
     public SearchListDto() {
     }
 
     public SearchListDto(String tokenId, int pageNo, int pageSize, List<SearchDto> searchDtoList,
-                         List<OrderByDto> orderByDtoList, String operator, List<String> fieldList) {
+                         List<OrderByDto> orderByDtoList, String operator, List<String> fieldList, List<String> groupByList) {
         this.pageNo = pageNo;
         this.pageSize = pageSize;
         this.searchDtoList = searchDtoList;
         this.orderByDtoList = orderByDtoList;
         this.operator = operator;
         this.fieldList = fieldList;
+        this.groupByList = groupByList;
     }
 
     public int getPageNo() {
@@ -110,6 +114,14 @@ public class SearchListDto implements java.io.Serializable {
         this.fieldList = fieldList;
     }
 
+    public List<String> getGroupByList() {
+        return groupByList;
+    }
+
+    public void setGroupByList(List<String> groupByList) {
+        this.groupByList = groupByList;
+    }
+
     public Map<String, Object> toMap() {
         if (null == searchDtoList) {
             throw new NullPointerException("搜索条件集合不能为空！");
@@ -138,11 +150,17 @@ public class SearchListDto implements java.io.Serializable {
         return orderStr.toString();
     }
 
-    public String toSql(String tableName) {
-        StringBuilder sql = new StringBuilder("select ");
-        sql.append(null == fieldList ? "*" : getFieldSql())
-                .append(" form ")
-                .append(tableName).append(" ")
-                .append(null == orderByDtoList)
+    public String toGroupByStr() {
+        if (null == groupByList) {
+            return "";
+        }
+        StringBuilder groupByStr = new StringBuilder();
+        for (String str : groupByList) {
+            groupByStr.append(str).append(",");
+        }
+        if (groupByStr.length() > 1) {
+            groupByStr.deleteCharAt(groupByStr.length()-1);
+        }
+        return groupByStr.toString();
     }
 }

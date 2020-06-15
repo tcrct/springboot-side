@@ -7,6 +7,7 @@ import com.springbootside.duang.db.model.IdEntity;
 import com.springbootside.duang.db.utils.DbKit;
 import org.beetl.sql.core.SQLManager;
 import org.beetl.sql.core.SQLReady;
+import org.beetl.sql.core.SQLScript;
 import org.beetl.sql.core.engine.PageQuery;
 import org.beetl.sql.core.kit.ConstantEnum;
 import org.beetl.sql.core.query.Query;
@@ -71,23 +72,28 @@ public class CurdService<T> implements ICurdService<T> {
     @Override
     public PageDto<T> search(SearchListDto searchListDto) {
         Class<T> genericTypeClass = getGenericTypeClass();
+        PageDto<T> pageDto = new PageDto<>();
         String sqlId = searchListDto.getKey();
-        Map<String,Object> paramMap =  searchListDto.toMap();
-        List<SearchDto> searchDtoList = searchListDto.getSearchDtoList();
-        PageQuery<T> pageQuery = new PageQuery<T>(pageNo, pageSize, searchListDto.toMap());
-        pageQuery.setOrderBy(searchListDto.toOrderByStr());
+        List<T> resultList = null;
+        Query<T> query = manager.query(genericTypeClass);
         if (null != sqlId) {
-            pageQuery = manager.pageQuery(sqlId, genericTypeClass, pageQuery);
+            resultList = manager.select(sqlId, genericTypeClass, searchListDto.toMap());
         } else {
-            String sql = searchListDto.toSql(manager.getDbStyle().getNameConversion().getTableName(genericTypeClass));
-            Query<T> query = manager.query(genericTypeClass);
-            DbKit.createQueryCondition(query, searchListDto);
-
-                    .orderBy()
-                    .getSql().toString();
-            pageQuery = manager.execute(new SQLReady(sql), genericTypeClass, pageQuery);
+            query = DbKit.createQueryCondition(query, searchListDto);
+            query = query.orderBy(searchListDto.toOrderByStr());
+            if (null != searchListDto.getOrderByDtoList()) {
+                    query.orderBy(searchListDto.toOrderByStr());
+            }
+            if (null != searchListDto.getGroupByList()) {
+                query.groupBy(searchListDto.toGroupByStr());
+            }
+            query.limit(searchListDto.getPageNo(), searchListDto.getPageSize());
+            resultList = (null == searchListDto.getFieldList()) ? query.select() :
+                    query.select(searchListDto.getFieldList().toArray(new String[]{}));
         }
-
-        return DbKit.toPageDto(pageQuery);
+        pageDto.setAutoCount(true);
+        pageDto.setResult(resultList);
+        pageDto.setTotalCount(query.count());
+        return pageDto;
     }
 }
