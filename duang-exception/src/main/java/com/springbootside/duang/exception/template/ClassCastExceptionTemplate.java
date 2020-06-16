@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * BeetlSQL 异常处理
+ * 类转换 异常处理
  *
  * @author Laotang
  * @version 1.0
@@ -28,7 +28,7 @@ public class ClassCastExceptionTemplate extends AbstractExceptionTemplate {
         ClassCastException e = (ClassCastException) exception;
         ExceptionResultDto exceptionResultDto =  new ExceptionResultDto();
         exceptionResultDto.setCode(1);
-        exceptionResultDto.setMessage(e.getMessage());
+        exceptionResultDto.setMessage("类转换异常: " + e.getMessage());
         exceptionResultDto.setStackMsg(Exceptions.getStackTraceAsString(exception));
         LOGGER.info(exceptionResultDto.getStackMsg());
         return exceptionResultDto;

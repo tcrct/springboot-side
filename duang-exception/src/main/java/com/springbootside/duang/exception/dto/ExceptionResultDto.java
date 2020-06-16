@@ -1,5 +1,7 @@
 package com.springbootside.duang.exception.dto;
 
+import com.springbootside.duang.common.utils.SettingKit;
+
 /**
  * 异常信息Dto
  *
@@ -53,6 +55,8 @@ public class ExceptionResultDto implements java.io.Serializable {
     }
 
     public void setStackMsg(String stackMsg) {
-        this.stackMsg = stackMsg;
+        if ("dev".equalsIgnoreCase(SettingKit.duang().key("env").getString())) {
+            this.stackMsg = stackMsg;
+        }
     }
 }
