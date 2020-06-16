@@ -9,7 +9,7 @@ import com.springbootside.duang.common.enums.ConstEnums;
 import com.springbootside.duang.common.utils.SpringKit;
 import com.springbootside.duang.common.utils.ToolsKit;
 import com.springbootside.duang.db.curd.ICurdService;
-import com.springbootside.duang.db.dto.SearchDto;
+import com.springbootside.duang.db.dto.SearchListDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,14 +79,12 @@ public abstract class BaseController<T> {
         return ToolsKit.getSuperClassGenericType(getClass(), 0);
     }
 
+
     /**
-     * 取泛型Bean对象
-     * 必须要在客户端的请求头里添加Content_type=application/json
-     *
-     * @param <T> 泛型
-     * @return 对应的Bean
+     * 取请求主体内容
+     * @return 主体内容，以字符串的方式返回
      */
-    protected <T> T getBean() {
+    protected String getBody() {
         BufferedReader reader = null;
         try {
             reader = getRequest().getReader();
@@ -95,14 +93,13 @@ public abstract class BaseController<T> {
                 return null;
             }
             String body = IoUtil.read(reader);
-            // 必须要在客户端的请求头里添加Content_type=application/json
-            if (!ContentType.JSON.getValue().startsWith(getRequest().getHeader(Header.CONTENT_TYPE.getValue()))) {
-                LOGGER.info("请确保请求头里的[{}]字段设置为[{}]！", Header.CONTENT_TYPE.getValue(), ContentType.JSON.getValue());
-                return null;
+            if (ToolsKit.isEmpty(body)) {
+                throw new NullPointerException("request body is null");
             }
-            return (T) ToolsKit.jsonParseObject(body, getGenericTypeClass());
+            return body;
         } catch (Exception e) {
-            LOGGER.warn("BaseController getBean时出错: " + e.getMessage(), e);
+            LOGGER.warn("BaseController getBody时出错: " + e.getMessage(), e);
+            return null;
         } finally {
             if (null != reader) {
                 try {
@@ -112,7 +109,27 @@ public abstract class BaseController<T> {
                 }
             }
         }
-        return null;
+    }
+
+    /**
+     * 取泛型Bean对象
+     * 必须要在客户端的请求头里添加Content_type=application/json
+     *
+     * @param <T> 泛型
+     * @return 对应的Bean
+     */
+    protected <T> T getBean() {
+        return getBean(getGenericTypeClass());
+    }
+
+    protected <T> T getBean(Class<?> clazz) {
+        String body = getBody();
+        // 必须要在客户端的请求头里添加Content_type=application/json
+        if (!ContentType.JSON.getValue().startsWith(getRequest().getHeader(Header.CONTENT_TYPE.getValue()))) {
+            LOGGER.info("请确保请求头里的[{}]字段设置为[{}]！", Header.CONTENT_TYPE.getValue(), ContentType.JSON.getValue());
+            return null;
+        }
+        return (T) ToolsKit.jsonParseObject(body, clazz);
     }
 
     private <T> Optional<T> optional(T obj) {
@@ -158,6 +175,21 @@ public abstract class BaseController<T> {
     }
 
     /**
+     * 根据ID删除记录
+     *
+     * @return
+     */
+    @ResponseBody
+    @RequestMapping(value = "/deleteById", method = RequestMethod.GET)
+    public R deleteById() {
+        try {
+            return R.success(getCurdService().deleteById(getIntValue(ConstEnums.BASE_CONTROLLER_PARAM.ID.getValue())));
+        } catch (Exception e) {
+            return R.error(1, e.getMessage());
+        }
+    }
+
+    /**
      * 保存操作
      * <p>
      * value:  指定请求的实际地址， 比如 /action/info之类。
@@ -169,11 +201,11 @@ public abstract class BaseController<T> {
      *
      * @return
      */
-    @ResponseBody
     @RequestMapping(value = "/save",
-            method = RequestMethod.POST,
+            method= RequestMethod.POST,
             consumes = MediaType.ALL_VALUE,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
     public R save() {
         T vo = getBean();
         Set<ConstraintViolation<T>> violationSet = validator.validate(vo);
@@ -202,8 +234,15 @@ public abstract class BaseController<T> {
             consumes = MediaType.ALL_VALUE,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public R search() {
-        getCurdService().search(getBean());
-        return R.success();
+        SearchListDto dto = getBean(SearchListDto.class);
+        if (null == dto) {
+            throw new NullPointerException("提交的json数据不能转换成搜索对象！");
+        }
+        try {
+            return R.success(getCurdService().search(dto));
+        } catch (Exception e) {
+            return R.error(1, e.getMessage());
+        }
     }
 
 

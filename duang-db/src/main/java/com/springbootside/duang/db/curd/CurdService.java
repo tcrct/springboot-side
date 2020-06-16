@@ -1,30 +1,27 @@
 package com.springbootside.duang.db.curd;
 
+import cn.hutool.core.util.ReflectUtil;
 import com.springbootside.duang.db.dto.PageDto;
-import com.springbootside.duang.db.dto.SearchDto;
 import com.springbootside.duang.db.dto.SearchListDto;
-import com.springbootside.duang.db.model.IdEntity;
+import com.springbootside.duang.db.model.BaseEntity;
+import com.springbootside.duang.db.model.Update;
 import com.springbootside.duang.db.utils.DbKit;
 import org.beetl.sql.core.SQLManager;
 import org.beetl.sql.core.SQLReady;
-import org.beetl.sql.core.SQLScript;
-import org.beetl.sql.core.engine.PageQuery;
-import org.beetl.sql.core.kit.ConstantEnum;
+import org.beetl.sql.core.db.TableDesc;
 import org.beetl.sql.core.query.Query;
-import org.beetl.sql.core.query.QueryCondition;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
 /**
+ * 公用的CURD方法服务基类
  *
+ * @author Laotang
+ * @since 1.0
  */
 public class CurdService<T> implements ICurdService<T> {
-
-    private static final Integer pageNo = 1;
-    private static final Integer pageSize = 20;
 
     @Autowired
     private SQLManager manager;
@@ -47,21 +44,38 @@ public class CurdService<T> implements ICurdService<T> {
     }
 
     /**
+     * 根据ID，逻辑删除记录(将表中status字段值改为0)
+     * @param id 待删除的记录ID
+     * @return 成功删除返回受影响的行数
+     */
+    @Override
+    public Integer deleteById(Serializable id) {
+        Object entity = ReflectUtil.newInstance(getGenericTypeClass());
+        ReflectUtil.setFieldValue(entity, BaseEntity.ID_FIELD, id);
+        //设置为逻辑删除
+        ReflectUtil.setFieldValue(entity, BaseEntity.STATUS_FIELD, 1);
+        return save((T)entity);
+    }
+
+    /**
      * 保存操作
-     * @param entity 待持久化的对象
+     * 以entity里是否有id值来判断是新增还是更新操作。
+     * 更新操作时，会自动根据entity不为null的字段进行更新。
+     *
+     * @param entity 待持久化/更新的对象
      * @return
      */
     @Override
-    public T save(T entity) {
-
-        Class<T> genericTypeClass = getGenericTypeClass();
-        IdEntity idEntity = (IdEntity) entity;
-        if (null == idEntity.getId() || "".equals(idEntity.getId())) {
-            manager.insert(genericTypeClass, entity);
+    public Integer save(T entity) {
+        BaseEntity baseEntity = (BaseEntity) entity;
+        if (null == baseEntity.getId() || "".equals(baseEntity.getId())) {
+           return manager.insert(getGenericTypeClass(), baseEntity);
         } else {
-            manager.updateAll(genericTypeClass, entity);
+            String tableName = manager.getDbStyle().getNameConversion().getTableName(entity.getClass());
+            TableDesc tableDesc = manager.getMetaDataManager().getTable(tableName);
+            Update update = new Update(tableDesc.getName(), baseEntity);
+            return manager.executeUpdate(new SQLReady(update.getUpdateSql(), update.getParams().toArray()));
         }
-        return null;
     }
 
     /**
@@ -80,10 +94,8 @@ public class CurdService<T> implements ICurdService<T> {
             resultList = manager.select(sqlId, genericTypeClass, searchListDto.toMap());
         } else {
             query = DbKit.createQueryCondition(query, searchListDto);
+            // 默认按id desc排序
             query = query.orderBy(searchListDto.toOrderByStr());
-            if (null != searchListDto.getOrderByDtoList()) {
-                    query.orderBy(searchListDto.toOrderByStr());
-            }
             if (null != searchListDto.getGroupByList()) {
                 query.groupBy(searchListDto.toGroupByStr());
             }
@@ -93,6 +105,9 @@ public class CurdService<T> implements ICurdService<T> {
         }
         pageDto.setAutoCount(true);
         pageDto.setResult(resultList);
+        StringBuilder sql = query.getSql();
+        sql.delete(0, sql.indexOf("WHERE"));
+        query.setSql(sql);
         pageDto.setTotalCount(query.count());
         return pageDto;
     }

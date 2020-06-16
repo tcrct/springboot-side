@@ -1,6 +1,5 @@
 package com.springbootside.duang.db.dto;
 
-import com.baomidou.mybatisplus.generator.config.IFileCreate;
 import com.springbootside.duang.db.annotation.Param;
 import com.springbootside.duang.db.model.IdEntity;
 
@@ -9,13 +8,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 搜索条件Dto
+ *
+ * @author Laotang
+ * @since 1.0
+ */
 public class SearchListDto implements java.io.Serializable {
 
     /**
      * 页数,由0开始
      */
-    @Param(label = "页数", desc = "页数,由0开始", defaultValue = "0")
-    private int pageNo = 0;
+    @Param(label = "页数", desc = "页数,由1开始", defaultValue = "1")
+    private int pageNo = 1;
     /**
      * 页行数，默认每页10行
      */

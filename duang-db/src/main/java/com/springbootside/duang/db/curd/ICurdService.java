@@ -24,11 +24,18 @@ public interface ICurdService<T> {
     T findById(Serializable id);
 
     /**
+     * 根据ID，逻辑删除记录(将表中status字段值改为0)
+     * @param id 待删除的记录ID
+     * @return 成功删除返回受影响的行数
+     */
+    Integer deleteById(Serializable id);
+
+    /**
      * 新增或修改后保存对象
      * @param entity 待持久化的对象
-     * @return
+     * @return 受影响的行数
      */
-    T save(T entity);
+    Integer save(T entity);
 
     /**
      * 根据条件对象进行搜索

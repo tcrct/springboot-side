@@ -4,7 +4,8 @@ import javax.validation.constraints.NotEmpty;
 import com.springbootside.duang.db.annotation.Param;
 
 /**
- * 搜索条件对象
+ * 搜索条件明细对象
+ * 包含字段，表达式，值
  *
  * @author Laotang
  * @since 1.0

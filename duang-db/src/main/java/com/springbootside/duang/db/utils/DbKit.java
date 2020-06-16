@@ -3,17 +3,27 @@ package com.springbootside.duang.db.utils;
 import com.springbootside.duang.db.dto.SearchDto;
 import com.springbootside.duang.db.dto.SearchListDto;
 import com.springbootside.duang.db.enums.OperatorEnum;
+import com.springbootside.duang.db.model.IdEntity;
+import com.springbootside.duang.db.model.Update;
 import org.beetl.sql.core.query.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class DbKit {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DbKit.class);
+    private static final ConcurrentMap<String, Field[]> FIELD_MAPPING_MAP = new ConcurrentHashMap<>();
 
     public static Class<?> getSuperClassGenericType(final Class<?> clazz) {
         return getSuperClassGenericType(clazz, 0);
@@ -117,4 +127,74 @@ public class DbKit {
         }
         return query;
     }
+
+    /**
+     * 根据class对象反射出所有属性字段，静态字段除外
+     * @param cls
+     * @return
+     */
+    public static Field[] getFields(Class<?> cls){
+        String key = cls.getName();
+        Field[] field = null;
+        if(FIELD_MAPPING_MAP.containsKey(key)){
+            field = FIELD_MAPPING_MAP.get(key);
+        }else{
+            field = getAllFields(cls);
+            FIELD_MAPPING_MAP.put(key, field);
+        }
+        return (null == field) ? null : field;
+    }
+
+    /**
+     * 根据class对象反射出所有属性字段，静态字段除外
+     * @param cls
+     * @return  Map集合，key为field.getName()
+     */
+    public static Map<String, Field> getFieldMap(Class<?> cls) {
+        Field[] fileds = getFields(cls);
+        if(null == fileds) {
+            return null;
+        }
+        Map<String, Field> map = new HashMap<>(fileds.length);
+        for(Field field : fileds) {
+            if(null != field) {
+                map.put(field.getName(), field);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * 取出类里的所有字段
+     * @param cls
+     * @return	Field[]
+     */
+    private static Field[] getAllFields(Class<?> cls) {
+        List<Field> fieldList = new ArrayList<Field>();
+        fieldList.addAll(filterStaticFields(cls.getDeclaredFields()));
+        Class<?> parent = cls.getSuperclass();
+        //查找父类里的属性字段
+        while(null != parent && parent != Object.class){
+            fieldList.addAll(filterStaticFields(parent.getDeclaredFields()));
+            parent = parent.getSuperclass();
+        }
+        return fieldList.toArray(new Field[fieldList.size()]);
+    }
+
+    /**
+     * 过滤静态方法
+     * @param fields
+     * @return
+     */
+    private static List<Field> filterStaticFields(Field[] fields){
+        List<Field> result = new ArrayList<Field>();
+        for (Field field : fields) {
+            if(!Modifier.isStatic(field.getModifiers())){		//静态字段不取
+                field.setAccessible(true);	//设置可访问私有变量
+                result.add(field);
+            }
+        }
+        return result;
+    }
+
 }
