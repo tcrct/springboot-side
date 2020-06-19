@@ -14,12 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 工具类
@@ -238,5 +237,35 @@ public class ToolsKit {
     public static String getCurrentDateTime() {
 //        DateUtil.date(System.currentTimeMillis()).toStringDefaultTimeZone();
         return DateUtil.now();
+    }
+
+    /**
+     * 构建过滤方法名集合，默认包含Object类里公共方法
+     * @param excludeMethodClass  如果有指定，则添加指定类下所有方法名
+     *
+     * @return
+     */
+    private static final Set<String> excludedMethodName = new HashSet<>();
+    public static Set<String> buildExcludedMethodName(Class<?>... excludeMethodClass) {
+        if(excludedMethodName.isEmpty()) {
+            Method[] objectMethods = Object.class.getDeclaredMethods();
+            for (Method m : objectMethods) {
+                excludedMethodName.add(m.getName());
+            }
+        }
+        Set<String> tmpExcludeMethodName = null;
+        if(null != excludeMethodClass) {
+            tmpExcludeMethodName = new HashSet<>();
+            for (Class excludeClass : excludeMethodClass) {
+                Method[] excludeMethods = excludeClass.getDeclaredMethods();
+                if (null != excludeMethods) {
+                    for (Method method : excludeMethods) {
+                        tmpExcludeMethodName.add(method.getName());
+                    }
+                }
+            }
+            tmpExcludeMethodName.addAll(excludedMethodName);
+        }
+        return (null == tmpExcludeMethodName) ? excludedMethodName : tmpExcludeMethodName;
     }
 }

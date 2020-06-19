@@ -49,6 +49,15 @@ public final class SpringKit implements BeanPostProcessor {
             }
             serviceGenericTypeBeanMap.put(genericTypeClass, bean);
         }
+
+//        if (beanName.endsWith("Dao") && beanClass.getName().contains("$Proxy")) {
+//
+//            Object proxyObject = DaoProxyKit.newProxyInstance(beanClass);
+//            LOGGER.warn("将[{}]创建为代理类: {}！", beanName, bean.getClass());
+//            System.out.println(proxyObject.getClass());
+////            ProxyManager.createProxy(beanClass, new L)
+//            return proxyObject;
+//        }
         return bean;
     }
 

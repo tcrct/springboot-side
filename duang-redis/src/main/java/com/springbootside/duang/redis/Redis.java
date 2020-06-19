@@ -21,6 +21,8 @@ public class Redis {
 
     private static final Logger LOG = LoggerFactory.getLogger(Redis.class);
 
+    protected final ThreadLocal<Jedis> jedisThreadLocal = new ThreadLocal<>();
+
     private String name;
     private JedisPool jedisPool;
     private ISerializer serializer;
@@ -39,10 +41,19 @@ public class Redis {
 
     private Jedis getResource()  {
         try {
+            Jedis jedis = jedisThreadLocal.get();
+            if (null != jedis) {
+                return jedis;
+            }
             if(null == jedisPool) {
                 throw new CacheException("jedisPool is null");
             }
-            return jedisPool.getResource();
+            jedis =  jedisPool.getResource();
+            if (null == jedis) {
+                throw new CacheException("jedis is null");
+            }
+            jedisThreadLocal.set(jedis);
+            return jedis;
         } catch (Exception e) {
             throw new CacheException("取jedis资料时出错: " + e.getMessage(), e);
         }
@@ -53,7 +64,7 @@ public class Redis {
     }
 
     private void close(Jedis jedis) {
-        if ( jedis != null) {
+        if (jedisThreadLocal.get() == null && jedis != null) {
             jedis.close();
         }
     }
@@ -67,14 +78,18 @@ public class Redis {
     public <T> T call(JedisAction action) {
         T result = null;
         Jedis jedis = null;
+        boolean notJedisThreadLocal = false;
         try {
             jedis = getResource();
+            notJedisThreadLocal = (jedis == null);
             result = (T) action.execute(jedis);
         } catch (Exception e) {
             LOG.warn(e.getMessage(), e);
         }
         finally {
-            close(jedis);
+            if (notJedisThreadLocal) {
+                close(jedis);
+            }
         }
         return result;
     }
