@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <groupId>com.springbootside.duang</groupId>
-        <artifactId>springbootside-duang</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-    </parent>
+<!--    <parent>-->
+<!--        <groupId>com.springbootside.duang</groupId>-->
+<!--        <artifactId>springbootside-duang</artifactId>-->
+<!--        <version>0.0.1-SNAPSHOT</version>-->
+<!--    </parent>-->
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.springbootside.duang.redis</groupId>
@@ -19,15 +19,12 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <jedis.version>2.9.0</jedis.version>
         <fst.version>2.29</fst.version>
-        <duang.common.version>0.0.1-SNAPSHOT</duang.common.version>
+        <slf4j.version>1.7.7</slf4j.version>
+        <logbakc.version>1.2.3</logbakc.version>
+<!--        <duang.common.version>0.0.1-SNAPSHOT</duang.common.version>-->
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>com.springbootside.duang.common</groupId>
-            <artifactId>duang-common</artifactId>
-            <version>${duang.common.version}</version>
-        </dependency>
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
@@ -37,6 +34,45 @@
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>fst</artifactId>
             <version>${fst.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <!-- java.util.logging 实际调用slf4j -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logbakc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-access</artifactId>
+            <version>${logbakc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logbakc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>${slf4j.version}</version>
         </dependency>
     </dependencies>
 

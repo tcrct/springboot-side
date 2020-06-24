@@ -3,7 +3,9 @@ package com.springbootside.duang.common.dto;
 /**
  * 统一返回处理结果对象
  *
- * @param <T> 处理结果泛型对象
+ *@author Laotang
+ *@since 1.0
+ *@param <T> 返回结果的泛型对象
  */
 public class ReturnDto<T> implements java.io.Serializable {
 

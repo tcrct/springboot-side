@@ -1,7 +1,7 @@
 package com.springbootside.duang.redis.core;
 
 
-import com.springbootside.duang.common.utils.ToolsKit;
+import java.util.List;
 
 public class CacheKeyModel {
 
@@ -62,8 +62,8 @@ public class CacheKeyModel {
          * @param customKey 自定义的key值
          * @return
          */
-        public Builder customKey(String customKey) {
-            this.customKey = customKey;
+        public Builder customKey(Object customKey) {
+            this.customKey = String.valueOf(customKey);
             return this;
         }
 
@@ -87,10 +87,10 @@ public class CacheKeyModel {
      */
     public String getKey() {
         if (null != keyEnums) {
-            if (keyPrefix.endsWith(":") && ToolsKit.isNotEmpty(customKey)) {
+            if (keyPrefix.endsWith(":") && null != customKey) {
                 return keyPrefix + customKey;
             } else {
-                return ToolsKit.isNotEmpty(customKey) ? keyPrefix + ":" + customKey : keyPrefix;
+                return null != customKey ? keyPrefix + ":" + customKey : keyPrefix;
             }
         } else {
             return customKey;
