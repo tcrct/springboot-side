@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPubSub;
 
 import java.util.*;
 
@@ -104,11 +105,11 @@ public class Redis {
      * @param key 要缓存的key值
      * @return
      */
-    protected byte[] serializerKey(Object key) {
+    private byte[] serializerKey(Object key) {
         return serializer.keyToBytes(String.valueOf(key));
     }
 
-    protected byte[][] serializerKeyArray(Object... keys) {
+    private byte[][] serializerKeyArray(Object... keys) {
         byte[][] result = new byte[keys.length][];
         for (int i=0; i<result.length; i++)
             result[i] = serializerKey(keys[i]);
@@ -123,6 +124,15 @@ public class Redis {
     private byte[] serializerValue(Object value) {
         return serializer.valueToBytes(value);
     }
+
+    private byte[][] serializerValueArray(Object... valuesArray) {
+        byte[][] data = new byte[valuesArray.length][];
+        for (int i=0; i<data.length; i++)
+            data[i] = serializerValue(valuesArray[i]);
+        return data;
+    }
+
+
 
     private byte[] serializeValuesTR(Object value) {
         return serializer.valueToBytes(value);
@@ -149,7 +159,7 @@ public class Redis {
     }
 
     protected Set<String> valueListFromBytesSet(Set<byte[]> data) {
-        Set<String> result = new HashSet<>(data.size());
+        LinkedHashSet<String> result = new LinkedHashSet<>(data.size());
         for (byte[] d : data) {
             result.add(String.valueOf(deSerializeValue(d)));
         }
@@ -873,6 +883,75 @@ public class Redis {
     }
 
     /**
+     * 返回列表 key 中指定区间内的元素，区间以偏移量 start 和 stop 指定。
+     * 下标(index)参数 start 和 stop 都以 0 为底，也就是说，以 0 表示列表的第一个元素，以 1 表示列表的第二个元素，以此类推。
+     * 你也可以使用负数下标，以 -1 表示列表的最后一个元素， -2 表示列表的倒数第二个元素，以此类推。
+     * <pre>
+     * 例子：
+     * 获取 list 中所有数据：cache.lrange(listKey, 0, -1);
+     * 获取 list 中下标 1 到 3 的数据： cache.lrange(listKey, 1, 3);
+     * </pre>
+     *
+     * @param model         CacheKeyModel对象
+     * @param start			开始位置(0表示第一个元素)
+     * @param end			结束位置(-1表示最后一个元素)
+     */
+    @SuppressWarnings("rawtypes")
+    public List lrange(final CacheKeyModel model, final int start, final int end) {
+        return call(new JedisAction<List<String>>(){
+            @Override
+            public List<String> execute(Jedis jedis) {
+                return valueListFromBytesList(jedis.lrange(serializerKey(model.getKey()), start, end));
+            }
+        });
+    }
+
+    /**
+     * 对一个列表进行修剪(trim)，就是说，让列表只保留指定区间内的元素，不在指定区间之内的元素都将被删除。
+     * 举个例子，执行命令 LTRIM list 0 2 ，表示只保留列表 list 的前三个元素，其余元素全部删除。
+     * 下标(index)参数 start 和 stop 都以 0 为底，也就是说，以 0 表示列表的第一个元素，以 1 表示列表的第二个元素，以此类推。
+     * 你也可以使用负数下标，以 -1 表示列表的最后一个元素， -2 表示列表的倒数第二个元素，以此类推。
+     * 当 key 不是列表类型时，返回一个错误。
+     */
+    public String ltrim(final CacheKeyModel model, final int start, final int end) {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                return jedis.ltrim(serializerKey(model.getKey()), start, end);
+            }
+        });
+    }
+
+    /**
+     * 移除并返回列表 key 的尾元素。
+     */
+    @SuppressWarnings("unchecked")
+    public String rpop(final CacheKeyModel model) {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                return deSerializeValue(jedis.rpop(serializerKey(model.getKey())));
+            }
+        });
+    }
+
+    /**
+     * 命令 RPOPLPUSH 在一个原子时间内，执行以下两个动作：
+     * 将列表 source 中的最后一个元素(尾元素)弹出，并返回给客户端。
+     * 将 source 弹出的元素插入到列表 destination ，作为 destination 列表的的头元素。
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T rpoplpush(Object srcKey, Object dstKey) {
+
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                return deSerializeValue(jedis.rpoplpush(serializerKey(srcKey), serializerKey(dstKey)));
+            }
+        });
+    }
+
+    /**
      * 将一个或多个值 value 插入到列表 key 的表尾(最右边)。
      * 如果有多个 value 值，那么各个 value 值按从左到右的顺序依次插入到表尾：比如
      * 对一个空列表 mylist 执行 RPUSH mylist a b c ，得出的结果列表为 a b c ，
@@ -880,14 +959,486 @@ public class Redis {
      * 如果 key 不存在，一个空列表会被创建并执行 RPUSH 操作。
      * 当 key 存在但不是列表类型时，返回一个错误。
      */
-    public Long rpush(final CacheKeyModel model, final Object value) {
+    public Long rpush(final CacheKeyModel model, final Object... value) {
         return call(new JedisAction<Long>(){
             @Override
             public Long execute(Jedis jedis) {
-                return jedis.rpush(serializerKey(model.getKey()), serializerValue(value));
+                return jedis.rpush(serializerKey(model.getKey()), serializerKeyArray(value));
             }
         });
     }
 
+    /**
+     * BLPOP 是列表的阻塞式(blocking)弹出原语。
+     * 它是 LPOP 命令的阻塞版本，当给定列表内没有任何元素可供弹出的时候，连接将被 BLPOP 命令阻塞，直到等待超时或发现可弹出元素为止。
+     * 当给定多个 key 参数时，按参数 key 的先后顺序依次检查各个列表，弹出第一个非空列表的头元素。
+     *
+     * 参考：http://redisdoc.com/list/blpop.html
+     * 命令行：BLPOP key [key ...] timeout
+     */
+    @SuppressWarnings("rawtypes")
+    public List<String> blpop(int timeout, Object... keys) {
+        return call(new JedisAction<List<String>>(){
+            @Override
+            public List<String> execute(Jedis jedis) {
+                List<byte[]> data =  jedis.blpop(timeout, serializerKeyArray(keys));
+                return valueListFromBytesList(data);
+            }
+        });
+    }
+
+    /**
+     * BRPOP 是列表的阻塞式(blocking)弹出原语。
+     * 它是 RPOP 命令的阻塞版本，当给定列表内没有任何元素可供弹出的时候，连接将被 BRPOP 命令阻塞，直到等待超时或发现可弹出元素为止。
+     * 当给定多个 key 参数时，按参数 key 的先后顺序依次检查各个列表，弹出第一个非空列表的尾部元素。
+     * 关于阻塞操作的更多信息，请查看 BLPOP 命令， BRPOP 除了弹出元素的位置和 BLPOP 不同之外，其他表现一致。
+     *
+     * 参考：http://redisdoc.com/list/brpop.html
+     * 命令行：BRPOP key [key ...] timeout
+     */
+    @SuppressWarnings("rawtypes")
+    public List<String> brpop(int timeout, Object... keys) {
+        return call(new JedisAction<List<String>>(){
+            @Override
+            public List<String> execute(Jedis jedis) {
+                List<byte[]> data =  jedis.brpop(timeout, serializerKeyArray(keys));
+                return valueListFromBytesList(data);
+            }
+        });
+    }
+
+    /**
+     * 使用客户端向 Redis 服务器发送一个 PING ，如果服务器运作正常的话，会返回一个 PONG 。
+     * 通常用于测试与服务器的连接是否仍然生效，或者用于测量延迟值。
+     */
+    public String ping() {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                return jedis.ping();
+            }
+        });
+    }
+
+    /**
+     * 将一个或多个 member 元素加入到集合 key 当中，已经存在于集合的 member 元素将被忽略。
+     * 假如 key 不存在，则创建一个只包含 member 元素作成员的集合。
+     * 当 key 不是集合类型时，返回一个错误。
+     */
+    public Long sadd(CacheKeyModel model, Object... values) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.sadd(serializerKey(model.getKey()), serializerKeyArray(values));
+            }
+        });
+    }
+
+    /**
+     * 返回集合 key 的基数(集合中元素的数量)。
+     */
+    public Long scard(CacheKeyModel model) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.scard(serializerKey(model.getKey()));
+            }
+        });
+    }
+
+    /**
+     * 移除并返回集合中的一个随机元素。
+     * 如果只想获取一个随机元素，但不想该元素从集合中被移除的话，可以使用 SRANDMEMBER 命令。
+     */
+    @SuppressWarnings("unchecked")
+    public String spop(CacheKeyModel model) {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                return deSerializeValue(jedis.spop(serializerKey(model.getKey())));
+            }
+        });
+    }
+
+    /**
+     * 返回集合 key 中的所有成员。
+     * 不存在的 key 被视为空集合。
+     */
+    @SuppressWarnings("rawtypes")
+    public Set<String> smembers(CacheKeyModel model) {
+        return call(new JedisAction<Set<String>>(){
+            @Override
+            public Set<String> execute(Jedis jedis) {
+                Set<byte[]> data = jedis.smembers(serializerKey(model.getKey()));
+                return valueListFromBytesSet(data);
+            }
+        });
+    }
+
+    /**
+     * 判断 member 元素是否集合 key 的成员。
+     */
+    public Boolean sismember(CacheKeyModel model, Object value) {
+        return call(new JedisAction<Boolean>(){
+            @Override
+            public Boolean execute(Jedis jedis) {
+                return jedis.sismember(serializerKey(model.getKey()), serializerValue(value));
+            }
+        });
+    }
+
+    /**
+     * 返回多个集合的交集，多个集合由 keys 指定
+     */
+    @SuppressWarnings("rawtypes")
+    public Set<String> sinter(Object... keys) {
+        return call(new JedisAction<Set<String>>(){
+            @Override
+            public Set<String> execute(Jedis jedis) {
+                Set<byte[]> data = jedis.sinter(serializerKeyArray(keys));
+                return valueListFromBytesSet(data);
+            }
+        });
+    }
+
+    /**
+     * 返回集合中的一个随机元素。
+     */
+    @SuppressWarnings("unchecked")
+    public String srandmember(CacheKeyModel model) {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                return deSerializeValue(jedis.srandmember(serializerKey(model.getKey())));
+            }
+        });
+    }
+
+    /**
+     * 返回集合中的 count 个随机元素。
+     * 从 Redis 2.6 版本开始， SRANDMEMBER 命令接受可选的 count 参数：
+     * 如果 count 为正数，且小于集合基数，那么命令返回一个包含 count 个元素的数组，数组中的元素各不相同。
+     * 如果 count 大于等于集合基数，那么返回整个集合。
+     * 如果 count 为负数，那么命令返回一个数组，数组中的元素可能会重复出现多次，而数组的长度为 count 的绝对值。
+     * 该操作和 SPOP 相似，但 SPOP 将随机元素从集合中移除并返回，而 SRANDMEMBER 则仅仅返回随机元素，而不对集合进行任何改动。
+     */
+    @SuppressWarnings("rawtypes")
+    public List<String> srandmember(CacheKeyModel model, int count) {
+        return call(new JedisAction<List<String>>(){
+            @Override
+            public List<String> execute(Jedis jedis) {
+                return valueListFromBytesList(jedis.srandmember(serializerKey(model.getKey()),count));
+            }
+        });
+    }
+
+    /**
+     * 移除集合 key 中的一个或多个 member 元素，不存在的 member 元素会被忽略。
+     */
+    public Long srem(CacheKeyModel model, Object... members) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.srem(serializerKey(model.getKey()),serializerKeyArray(members));
+            }
+        });
+    }
+
+    /**
+     * 返回多个集合的并集，多个集合由 keys 指定
+     * 不存在的 key 被视为空集。
+     */
+    @SuppressWarnings("rawtypes")
+    public Set<String> sunion(Object... keys) {
+        return call(new JedisAction<Set<String>>(){
+            @Override
+            public Set<String> execute(Jedis jedis) {
+                Set<byte[]> data = jedis.sunion(serializerKeyArray(keys));
+                return valueListFromBytesSet(data);
+            }
+        });
+    }
+
+    /**
+     * 返回一个集合的全部成员，该集合是所有给定集合之间的差集。
+     * 不存在的 key 被视为空集。
+     */
+    @SuppressWarnings("rawtypes")
+    public Set<String> sdiff(Object... keys) {
+        return call(new JedisAction<Set<String>>(){
+            @Override
+            public Set<String> execute(Jedis jedis) {
+                Set<byte[]> data = jedis.sdiff(serializerKeyArray(keys));
+                return valueListFromBytesSet(data);
+            }
+        });
+    }
+
+    /**
+     * 将一个或多个 member 元素及其 score 值加入到有序集 key 当中。
+     * 如果某个 member 已经是有序集的成员，那么更新这个 member 的 score 值，
+     * 并通过重新插入这个 member 元素，来保证该 member 在正确的位置上。
+     */
+    public Long zadd(CacheKeyModel model, double score, Object value) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.zadd(serializerKey(model.getKey()), score, serializerValue(value));
+            }
+        });
+    }
+
+    public Long zadd(CacheKeyModel model, Map<Object, Double> scoreMembers) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                Map<byte[], Double> para = new HashMap<byte[], Double>();
+                for (Map.Entry<Object, Double> e : scoreMembers.entrySet()) {
+                    para.put(serializerKey(model.getKey()), e.getValue());    // valueToBytes is important
+                }
+                return jedis.zadd(serializerKey(model.getKey()), para);
+            }
+        });
+    }
+
+    /**
+     * 返回有序集 key 的基数。
+     */
+    public Long zcard(CacheKeyModel model) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.zcard(serializerKey(model.getKey()));
+            }
+        });
+    }
+
+    /**
+     * 返回有序集 key 中， score 值在 min 和 max 之间(默认包括 score 值等于 min 或 max )的成员的数量。
+     * 关于参数 min 和 max 的详细使用方法，请参考 ZRANGEBYSCORE 命令。
+     */
+    public Long zcount(CacheKeyModel model, double min, double max) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.zcount(serializerKey(model.getKey()), min, max);
+            }
+        });
+    }
+
+    /**
+     * 为有序集 key 的成员 member 的 score 值加上增量 increment 。
+     */
+    public Double zincrby(CacheKeyModel model, double score, Object member) {
+        return call(new JedisAction<Double>(){
+            @Override
+            public Double execute(Jedis jedis) {
+                return jedis.zincrby(serializerKey(model.getKey()), score, serializerValue(member));
+            }
+        });
+    }
+
+    /**
+     * 返回有序集 key 中，指定区间内的成员。
+     * 其中成员的位置按 score 值递增(从小到大)来排序。
+     * 具有相同 score 值的成员按字典序(lexicographical order )来排列。
+     * 如果你需要成员按 score 值递减(从大到小)来排列，请使用 ZREVRANGE 命令。
+     */
+    @SuppressWarnings("rawtypes")
+    public Set<String> zrange(CacheKeyModel model, long start, long end) {
+        return call(new JedisAction<Set<String>>(){
+            @Override
+            public Set<String> execute(Jedis jedis) {
+                Set<byte[]> data = jedis.zrange(serializerKey(model.getKey()), start, end);
+                return valueListFromBytesSet(data);
+            }
+        });
+
+    }
+
+    /**
+     * 返回有序集 key 中，指定区间内的成员。
+     * 其中成员的位置按 score 值递减(从大到小)来排列。
+     * 具有相同 score 值的成员按字典序的逆序(reverse lexicographical order)排列。
+     * 除了成员按 score 值递减的次序排列这一点外， ZREVRANGE 命令的其他方面和 ZRANGE 命令一样。
+     */
+    @SuppressWarnings("rawtypes")
+    public Set<String> zrevrange(CacheKeyModel model, long start, long end) {
+        return call(new JedisAction<Set<String>>(){
+            @Override
+            public Set<String> execute(Jedis jedis) {
+                Set<byte[]> data = jedis.zrevrange(serializerKey(model.getKey()), start, end);
+                return valueListFromBytesSet(data);
+            }
+        });
+    }
+
+    /**
+     * 返回有序集 key 中，所有 score 值介于 min 和 max 之间(包括等于 min 或 max )的成员。
+     * 有序集成员按 score 值递增(从小到大)次序排列。
+     */
+    @SuppressWarnings("rawtypes")
+    public Set<String> zrangeByScore(CacheKeyModel model, double min, double max) {
+        return call(new JedisAction<Set<String>>(){
+            @Override
+            public Set<String> execute(Jedis jedis) {
+                Set<byte[]> data = jedis.zrangeByScore(serializerKey(model.getKey()), min, max);
+                return valueListFromBytesSet(data);
+            }
+        });
+    }
+
+    /**
+     * 返回有序集 key 中成员 member 的排名。其中有序集成员按 score 值递增(从小到大)顺序排列。
+     * 排名以 0 为底，也就是说， score 值最小的成员排名为 0 。
+     * 使用 ZREVRANK 命令可以获得成员按 score 值递减(从大到小)排列的排名。
+     */
+    public Long zrank(CacheKeyModel model, Object member) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.zrank(serializerKey(model.getKey()), serializerValue(member));
+            }
+        });
+    }
+
+    /**
+     * 返回有序集 key 中成员 member 的排名。其中有序集成员按 score 值递减(从大到小)排序。
+     * 排名以 0 为底，也就是说， score 值最大的成员排名为 0 。
+     * 使用 ZRANK 命令可以获得成员按 score 值递增(从小到大)排列的排名。
+     */
+    public Long zrevrank(CacheKeyModel model, Object member) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.zrevrank(serializerKey(model.getKey()), serializerValue(member));
+            }
+        });
+    }
+
+    /**
+     * 移除有序集 key 中的一个或多个成员，不存在的成员将被忽略。
+     * 当 key 存在但不是有序集类型时，返回一个错误。
+     */
+    public Long zrem(CacheKeyModel model, Object... members) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.zrem(serializerKey(model.getKey()), serializerValueArray(members));
+            }
+        });
+    }
+
+    /**
+     * 返回有序集 key 中，成员 member 的 score 值。
+     * 如果 member 元素不是有序集 key 的成员，或 key 不存在，返回 nil 。
+     */
+    public Double zscore(CacheKeyModel model, Object members) {
+        return call(new JedisAction<Double>(){
+            @Override
+            public Double execute(Jedis jedis) {
+                return jedis.zscore(serializerKey(model.getKey()), serializerValue(members));
+            }
+        });
+    }
+
+    /**
+     * 删除当前 db 所有数据
+     */
+    public String flushDB() {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                return jedis.flushDB();
+            }
+        });
+    }
+
+    /**
+     * 删除所有 db 的所有数据
+     */
+    public String flushAll() {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                return jedis.flushAll();
+            }
+        });
+    }
+
+    /**
+     * subscribe channel [channel …] 订阅一个或多个频道 <br/>
+     * PS：<br/>
+     *    取消订阅在 jedisPubSub 中的 unsubscribe 方法。<br/>
+     *    重要：订阅后代码会阻塞监听发布的内容<br/>
+     */
+    public String subscribe(final JedisPubSub jedisPubSub, final String... channels) {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                try {
+                    jedis.subscribe(jedisPubSub, channels);
+                    return "success";
+                } catch (Exception e) {
+                    LOG.warn(e.getMessage(), e);
+                    return "fail";
+                }
+
+            }
+        });
+    }
+
+    /**
+     * subscribe channel [channel …] 订阅一个或多个频道<br/>
+     * PS：<br/>
+     *    取消订阅在 jedisPubSub 中的 unsubscribe 方法。<br/>
+     */
+    public JedisPubSub subscribeThread(final JedisPubSub jedisPubSub, final String... channels) {
+        new Thread(() -> subscribe(jedisPubSub, channels)).start();
+        return jedisPubSub;
+    }
+
+    /**
+     * psubscribe pattern [pattern …] 订阅给定模式相匹配的所有频道<br/>
+     * PS：<br/>
+     *     取消订阅在 jedisPubSub 中的 punsubscribe 方法。<br/>
+     *     重要：订阅后代码会阻塞监听发布的内容<br/>
+     */
+    public String psubscribe(final JedisPubSub jedisPubSub, final String... patterns) {
+        return call(new JedisAction<String>(){
+            @Override
+            public String execute(Jedis jedis) {
+                try {
+                    jedis.psubscribe(jedisPubSub, patterns);
+                    return "success";
+                } catch (Exception e) {
+                    LOG.warn(e.getMessage(), e);
+                    return "fail";
+                }
+            }
+        });
+    }
+
+    /**
+     * psubscribe pattern [pattern …] 订阅给定模式相匹配的所有频道<br/>
+     * PS：<br/>
+     *     取消订阅在 jedisPubSub 中的 punsubscribe 方法。<br/>
+     */
+    public JedisPubSub psubscribeThread(final JedisPubSub jedisPubSub, final String... patterns) {
+        new Thread(() -> psubscribe(jedisPubSub, patterns)).start();
+        return jedisPubSub;
+    }
+
+    /**
+     * publish channel message 给指定的频道发消息
+     */
+    public Long publish(final String channel, final String message) {
+        return call(new JedisAction<Long>(){
+            @Override
+            public Long execute(Jedis jedis) {
+                return jedis.publish(channel, message);
+            }
+        });
+    }
 
 }
