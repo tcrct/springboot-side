@@ -19,7 +19,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <mongodb.version>3.10.1</mongodb.version>
         <druid.version>1.1.22</druid.version>
-        <mysql.version>6.0.5</mysql.version>
+        <mysql.version>8.0.16</mysql.version>
         <common.version>0.0.1-SNAPSHOT</common.version>
     </properties>
 
