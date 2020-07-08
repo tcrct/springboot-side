@@ -3,11 +3,13 @@ package com.springbootside.duang.redis;
 import com.springbootside.duang.redis.core.CacheException;
 import com.springbootside.duang.redis.core.CacheKeyModel;
 import com.springbootside.duang.redis.serializer.ISerializer;
+import com.springbootside.duang.redis.serializer.JdkSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.util.SafeEncoder;
 
 import java.util.*;
 
@@ -46,9 +48,21 @@ public class Redis {
 
     private Jedis getResource()  {
         try {
+            Jedis jedis = jedisPool.getResource();
+            if (null == jedis) {
+                throw new CacheException("jedis is null");
+            }
+            return jedis;
+        } catch (Exception e) {
+            throw new CacheException("取jedis资料时出错: " + e.getMessage(), e);
+        }
+    }
+    /*
+    private Jedis getResource()  {
+        try {
             Jedis jedis = jedisThreadLocal.get();
             if (null != jedis) {
-                isJedisThreadLocal = true;
+//                isJedisThreadLocal = true;
                 return jedis;
             }
             if(null == jedisPool) {
@@ -65,16 +79,22 @@ public class Redis {
             throw new CacheException("取jedis资料时出错: " + e.getMessage(), e);
         }
     }
+     */
 
     public void close() {
         jedisPool.close();
     }
 
     private void close(Jedis jedis) {
+        if (null != jedis) {
+            jedis.close();
+        }
+        /*
         if (jedisThreadLocal.get() == null && jedis != null) {
             jedis.close();
             jedisThreadLocal.remove();
         }
+         */
     }
 
     /**
@@ -93,9 +113,7 @@ public class Redis {
             LOG.warn(e.getMessage(), e);
         }
         finally {
-            if (!isJedisThreadLocal) {
                 close(jedis);
-            }
         }
         return result;
     }
@@ -122,6 +140,7 @@ public class Redis {
      * @return
      */
     private byte[] serializerValue(Object value) {
+//        return SafeEncoder.encode((String)value);
         return serializer.valueToBytes(value);
     }
 
@@ -146,14 +165,13 @@ public class Redis {
      * @param bytes 要反序列化的字节数组
      * @return
      */
-    protected String deSerializeValue(byte[] bytes) {
-        return String.valueOf(serializer.valueFromBytes(bytes));
+    protected Object deSerializeValue(byte[] bytes) {
+        return serializer.valueFromBytes(bytes);
     }
-
-    protected List<String> valueListFromBytesList(List<byte[]> data) {
-        List<String> result = new ArrayList<>(data.size());
+    protected <T> List<T> valueListFromBytesList(List<byte[]> data) {
+        List<T> result = new ArrayList<>(data.size());
         for (byte[] d : data) {
-            result.add(String.valueOf(deSerializeValue(d)));
+            result.add((T)deSerializeValue(d));
         }
         return result;
     }
@@ -547,24 +565,23 @@ public class Redis {
      * 此命令会覆盖哈希表中已存在的域。
      * 如果 key 不存在，一个空哈希表被创建并执行 HMSET 操作。
      */
-    public Boolean hmset(final CacheKeyModel options, final Map<String, String> values) {
+    public Boolean hmset(final CacheKeyModel options, final Map<String, Object> values) {
         return call(new JedisAction<Boolean>() {
             @Override
             public Boolean execute(Jedis jedis) {
-                String isok = "";
+                boolean isOk = false;
                 if(null != values){
                     Map<byte[], byte[]> map = new HashMap<byte[], byte[]>(values.size());
-                    for (Iterator<Map.Entry<String,String>> it = values.entrySet().iterator(); it.hasNext(); ){
-                        Map.Entry<String,String> entry = it.next();
+                    for (Iterator<Map.Entry<String,Object>> it = values.entrySet().iterator(); it.hasNext(); ){
+                        Map.Entry<String,Object> entry = it.next();
                         map.put(serializerKey(entry.getKey()), serializerValue(entry.getValue()));
                     }
-                    isok = jedis.hmset(serializerKey(options.getKey()), map);
-                    boolean isOk = "OK".equalsIgnoreCase(isok);
+                    isOk = "OK".equalsIgnoreCase(jedis.hmset(serializerKey(options.getKey()), map));
                     if(isOk) {
                         expire(options);
                     }
                 }
-                return false;
+                return isOk;
             }
         });
     }
@@ -577,11 +594,12 @@ public class Redis {
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String hget(final CacheKeyModel model, final String field) {
-        return call(new JedisAction<String>() {
+    public <T> T hget(final CacheKeyModel model, final String field) {
+        return call(new JedisAction<T>() {
             @Override
-            public String execute(Jedis jedis) {
-                return jedis.hget(model.getKey(),  field);
+            public T execute(Jedis jedis) {
+                byte[] bytes = jedis.hget(serializerKey(model.getKey()),  serializerValue(field));
+                return (T)deSerializeValue(bytes);
             }
         });
     }
@@ -594,10 +612,10 @@ public class Redis {
      * @param fields	hash中的field
      * @return
      */
-    public List<String> hmget(final CacheKeyModel model, final String... fields) {
-        return call(new JedisAction<List<String>>() {
+    public <T> List<T> hmget(final CacheKeyModel model, final String... fields) {
+        return call(new JedisAction<List<T>>() {
             @Override
-            public List<String> execute(Jedis jedis) {
+            public List<T>execute(Jedis jedis) {
                 List<byte[]> data = jedis.hmget(serializerKey(model.getKey()), serializerKeyArray(fields));
                 if (null != data){
                     expire(model);
@@ -613,16 +631,16 @@ public class Redis {
      * @param fields	hash中的field
      * @return
      */
-    public Map<String,String> hmgetToMap(final CacheKeyModel model, final String... fields) {
-        return call(new JedisAction<Map<String,String>>() {
+    public Map<String,Object> hmgetToMap(final CacheKeyModel model, final String... fields) {
+        return call(new JedisAction<Map<String,Object>>() {
             @Override
-            public Map<String, String> execute(Jedis jedis) {
-                List<String> byteList = jedis.hmget(model.getKey(), fields);
+            public Map<String, Object> execute(Jedis jedis) {
+                List<byte[]> byteList = jedis.hmget(serializerKey(model.getKey()), serializerKeyArray(fields));
                 int size  = byteList.size();
-                Map<String,String> map = new HashMap<>(size+1);
+                Map<String,Object> map = new HashMap<>(size);
                 for (int i = 0; i < size; i ++) {
                     if(null != byteList.get(i)) {
-                        map.put(fields[i], byteList.get(i));
+                        map.put(fields[i], deSerializeValue(byteList.get(i)));
                     }
                 }
                 return map;
@@ -659,12 +677,12 @@ public class Redis {
      * 在返回值里，紧跟每个域名(field name)之后是域的值(value)，所以返回值的长度是哈希表大小的两倍。
      */
     @SuppressWarnings("rawtypes")
-    public Map<String,String> hgetAll(final CacheKeyModel model) {
-        return call(new JedisAction<Map<String,String>>() {
+    public Map<String,Object> hgetAll(final CacheKeyModel model) {
+        return call(new JedisAction<Map<String,Object>>() {
             @Override
-            public Map<String,String> execute(Jedis jedis) {
+            public Map<String,Object> execute(Jedis jedis) {
                 Map<byte[], byte[]> data =  jedis.hgetAll(serializerKey(model.getKey()));
-                Map<String, String> result = new HashMap<String, String>(data.size());
+                Map<String, Object> result = new HashMap<String, Object>(data.size());
                 if (data != null) {
                     for (Map.Entry<byte[], byte[]> e : data.entrySet()) {
                         result.put(deSerializeKey(e.getKey()), deSerializeValue(e.getValue()));
@@ -679,10 +697,10 @@ public class Redis {
      * 返回哈希表 key 中所有域的值。
      */
     @SuppressWarnings("rawtypes")
-    public List<String> hvals(CacheKeyModel model) {
-        return call(new JedisAction<List<String>>() {
+    public List<Object> hvals(CacheKeyModel model) {
+        return call(new JedisAction<List<Object>>() {
             @Override
-            public List<String> execute(Jedis jedis) {
+            public List<Object> execute(Jedis jedis) {
                 List<byte[]> data = jedis.hvals(serializerKey(model.getKey()));
                 return valueListFromBytesList(data);
             }
@@ -757,16 +775,16 @@ public class Redis {
      * 你也可以使用负数下标，以 -1 表示列表的最后一个元素， -2 表示列表的倒数第二个元素，以此类推。
      * 如果 key 不是列表类型，返回一个错误。
      */
-    public String lindex(final CacheKeyModel model, long index) {
-        return call(new JedisAction<String>() {
+    public Integer lindex(final CacheKeyModel model, long index) {
+        return call(new JedisAction<Integer>() {
             @Override
-            public String execute(Jedis jedis) {
+            public Integer execute(Jedis jedis) {
                 byte[] bytes = jedis.lindex(serializerKey(model.getKey()), index);
-                String data =  deSerializeValue(bytes);
+                Object data =  deSerializeValue(bytes);
                 if (null != data) {
                     expire(model);
                 }
-                return data;
+                return Integer.parseInt(String.valueOf(data));
             }
         });
     }
@@ -793,7 +811,7 @@ public class Redis {
         return call(new JedisAction<Long>() {
             @Override
             public Long execute(Jedis jedis) {
-                return Long.parseLong(deSerializeValue(jedis.lpop(serializerKey(model.getKey()))));
+                return Long.parseLong(String.valueOf(deSerializeValue(jedis.lpop(serializerKey(model.getKey())))));
             }
         });
     }
@@ -809,10 +827,10 @@ public class Redis {
      * </pre>
      */
     @SuppressWarnings("rawtypes")
-    public List<String> lrange(final CacheKeyModel model, long start, long end) {
-        return call(new JedisAction<List<String>>() {
+    public List<Object> lrange(final CacheKeyModel model, long start, long end) {
+        return call(new JedisAction<List<Object>>() {
             @Override
-            public List<String> execute(Jedis jedis) {
+            public List<Object> execute(Jedis jedis) {
                 try {
                     List<byte[]> data = jedis.lrange(serializerKey(model.getKey()), start, end);
                     if (data != null) {
@@ -898,9 +916,9 @@ public class Redis {
      */
     @SuppressWarnings("rawtypes")
     public List lrange(final CacheKeyModel model, final int start, final int end) {
-        return call(new JedisAction<List<String>>(){
+        return call(new JedisAction<List<Object>>(){
             @Override
-            public List<String> execute(Jedis jedis) {
+            public List<Object> execute(Jedis jedis) {
                 return valueListFromBytesList(jedis.lrange(serializerKey(model.getKey()), start, end));
             }
         });
@@ -930,7 +948,7 @@ public class Redis {
         return call(new JedisAction<String>(){
             @Override
             public String execute(Jedis jedis) {
-                return deSerializeValue(jedis.rpop(serializerKey(model.getKey())));
+                return String.valueOf(deSerializeValue(jedis.rpop(serializerKey(model.getKey()))));
             }
         });
     }
@@ -943,10 +961,10 @@ public class Redis {
     @SuppressWarnings("unchecked")
     public <T> T rpoplpush(Object srcKey, Object dstKey) {
 
-        return call(new JedisAction<String>(){
+        return call(new JedisAction<T>(){
             @Override
-            public String execute(Jedis jedis) {
-                return deSerializeValue(jedis.rpoplpush(serializerKey(srcKey), serializerKey(dstKey)));
+            public T execute(Jedis jedis) {
+                return (T)deSerializeValue(jedis.rpoplpush(serializerKey(srcKey), serializerKey(dstKey)));
             }
         });
     }
@@ -977,10 +995,10 @@ public class Redis {
      * 命令行：BLPOP key [key ...] timeout
      */
     @SuppressWarnings("rawtypes")
-    public List<String> blpop(int timeout, Object... keys) {
-        return call(new JedisAction<List<String>>(){
+    public List<Object> blpop(int timeout, Object... keys) {
+        return call(new JedisAction<List<Object>>(){
             @Override
-            public List<String> execute(Jedis jedis) {
+            public List<Object> execute(Jedis jedis) {
                 List<byte[]> data =  jedis.blpop(timeout, serializerKeyArray(keys));
                 return valueListFromBytesList(data);
             }
@@ -997,10 +1015,10 @@ public class Redis {
      * 命令行：BRPOP key [key ...] timeout
      */
     @SuppressWarnings("rawtypes")
-    public List<String> brpop(int timeout, Object... keys) {
-        return call(new JedisAction<List<String>>(){
+    public List<Object> brpop(int timeout, Object... keys) {
+        return call(new JedisAction<List<Object>>(){
             @Override
-            public List<String> execute(Jedis jedis) {
+            public List<Object> execute(Jedis jedis) {
                 List<byte[]> data =  jedis.brpop(timeout, serializerKeyArray(keys));
                 return valueListFromBytesList(data);
             }
@@ -1055,7 +1073,7 @@ public class Redis {
         return call(new JedisAction<String>(){
             @Override
             public String execute(Jedis jedis) {
-                return deSerializeValue(jedis.spop(serializerKey(model.getKey())));
+                return String.valueOf(deSerializeValue(jedis.spop(serializerKey(model.getKey()))));
             }
         });
     }
@@ -1109,7 +1127,7 @@ public class Redis {
         return call(new JedisAction<String>(){
             @Override
             public String execute(Jedis jedis) {
-                return deSerializeValue(jedis.srandmember(serializerKey(model.getKey())));
+                return String.valueOf(deSerializeValue(jedis.srandmember(serializerKey(model.getKey()))));
             }
         });
     }
@@ -1123,10 +1141,10 @@ public class Redis {
      * 该操作和 SPOP 相似，但 SPOP 将随机元素从集合中移除并返回，而 SRANDMEMBER 则仅仅返回随机元素，而不对集合进行任何改动。
      */
     @SuppressWarnings("rawtypes")
-    public List<String> srandmember(CacheKeyModel model, int count) {
-        return call(new JedisAction<List<String>>(){
+    public List<Object> srandmember(CacheKeyModel model, int count) {
+        return call(new JedisAction<List<Object>>(){
             @Override
-            public List<String> execute(Jedis jedis) {
+            public List<Object> execute(Jedis jedis) {
                 return valueListFromBytesList(jedis.srandmember(serializerKey(model.getKey()),count));
             }
         });

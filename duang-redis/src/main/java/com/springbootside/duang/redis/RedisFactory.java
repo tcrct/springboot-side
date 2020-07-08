@@ -16,7 +16,7 @@ public class RedisFactory {
 
     private static final Map<String, Redis> REDIS_MAP = new ConcurrentHashMap<>();
 
-    private String cacheName;
+    private static String cacheName;
     private String host;
     private Integer port = null;
     private Integer timeout = null;
@@ -27,6 +27,25 @@ public class RedisFactory {
     private ISerializer serializer = null;
     private JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
 
+    public RedisFactory(String cacheName, String host, int port) {
+        this.cacheName = cacheName;
+        this.host = host;
+        this.port = port;
+        this.timeout = 3000;
+        this.database = 0;
+        this.clientName = cacheName;
+    }
+
+    public RedisFactory(String cacheName, String host, int port, String password) {
+        this.cacheName = cacheName;
+        this.host = host;
+        this.port = port;
+        this.password = password;
+        this.timeout = 3000;
+        this.database = 0;
+        this.clientName = cacheName;
+    }
+
 
     public RedisFactory(String cacheName, String host, int port, int timeout, String password, int database) {
         this.cacheName = cacheName;
@@ -35,6 +54,7 @@ public class RedisFactory {
         this.timeout = timeout;
         this.password = password;
         this.database = database;
+        this.clientName = cacheName;
     }
     public RedisFactory(String cacheName, String host, int port, int timeout, String password, int database, String clientName) {
         this(cacheName, host, port, timeout, password, database);
@@ -69,6 +89,10 @@ public class RedisFactory {
 
     public void addCache(Redis redis) {
         REDIS_MAP.put(redis.getRedisName(), redis);
+    }
+
+    public static Redis getCache() {
+        return getCache(cacheName);
     }
 
     public static Redis getCache(String cacheName) {
